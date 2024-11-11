@@ -1,1 +1,4 @@
-# Unbounded_Path_Planning
+# Unbounded Path-Planning
+
+## Contributors:
+- **Louis Sungwoo Cho**
