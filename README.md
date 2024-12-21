@@ -1,4 +1,4 @@
-# Unbounded Path-Planning
+# Model Comparison 
 
 ## Contributors:
 - **Louis Sungwoo Cho**
