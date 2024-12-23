@@ -27,22 +27,22 @@ most_leading_leader_id = None
 def find_leader_data(df, follower_id, run_index):
     global most_leading_leader_id
     
-    follower_data = df[(df['ID'] == follower_id) & (df['run-index'] == run_index)]
+    follower_data = df[(df['id'] == follower_id) & (df['run_index'] == run_index)]
     leader_data_dict = {}
     
     for index, row in follower_data.iterrows():
         time = row['time']
         follower_x = row[pos]
         follower_lane = row['lane-kf']
-        run_index = row['run-index']
+        run_index = row['run_index']
 
         #find the leader
-        leader_data = df[(df['ID'] != follower_id) & (df['time'] == time) & (df['lane-kf'] == follower_lane) & (df[pos] > follower_x) & (df['run-index'] == run_index)]
+        leader_data = df[(df['id'] != follower_id) & (df['time'] == time) & (df['lane-kf'] == follower_lane) & (df[pos] > follower_x) & (df['run_index'] == run_index)]
         
         if not leader_data.empty:
             nearest_leader_row = leader_data.loc[leader_data[pos].sub(follower_x).abs().idxmin()]
             
-            leader_id = nearest_leader_row['ID']
+            leader_id = nearest_leader_row['id']
             leader_x_val = nearest_leader_row[pos]
             leader_speed_val = nearest_leader_row['speed-kf']
 
@@ -56,18 +56,18 @@ def find_leader_data(df, follower_id, run_index):
     if leader_data_dict:
         most_leading_leader_id = max(leader_data_dict, key=lambda x: len(leader_data_dict[x]['time']))
         leader_data = leader_data_dict[most_leading_leader_id]
-        leader_df = pd.DataFrame({'ID': most_leading_leader_id,
+        leader_df = pd.DataFrame({'id': most_leading_leader_id,
                                    'time': leader_data['time'],
                                    pos: leader_data['x_val'],
                                    'speed-kf': leader_data['speed_val'],
-                                   'run-index': run_index})
+                                   'run_index': run_index})
     else:
-        leader_df = pd.DataFrame(columns=['ID', 'time', pos, 'speed-kf', 'run-index'])
+        leader_df = pd.DataFrame(columns=['id', 'time', pos, 'speed-kf', 'run_index'])
     
     return leader_df
 
 def extract_subject_and_leader_data(df, follower_id, run_index):
-    sdf = df[(df['ID'] == follower_id) & (df['run-index'] == run_index)].round(2)
+    sdf = df[(df['id'] == follower_id) & (df['run_index'] == run_index)].round(2)
     ldf = find_leader_data(df, follower_id, run_index).round(2)
     
     #find the intersection of time frames between leader and subject
@@ -380,67 +380,74 @@ def visualize_parameter_distributions(all_params):
 
 
 
+ 
+# datasets = {
+# "df395": "TGSIM/I395_Trajectories.csv",
+# "df9094": "TGSIM/I90_94_Moving_Trajectories.csv",
+# "df294l1": "TGSIM/I294_L1_Trajectories.csv",
+# "df294l2": "TGSIM/I294_L2_Trajectories.csv"}
 
-def main():
-    datasets = {
-    "df395": "TGSIM/I395_Trajectories.csv",
-    "df9094": "TGSIM/I90_94_Moving_Trajectories.csv",
-    "df294l1": "TGSIM/I294_L1_Trajectories.csv",
-    "df294l2": "TGSIM/I294_L2_Trajectories.csv"}
+# groups = {
+#     "df395": ["I395_A", "I395_S", "I395_L"],
+#     "df9094": ["I9094_L", "I9094_S", "I9094_A"],
+#     "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
+#     "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]}
 
-    groups = {
-        "df395": ["I395_A", "I395_S", "I395_L"],
-        "df9094": ["I9094_L", "I9094_S", "I9094_A"],
-        "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
-        "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]}
+datasets = { 
+"df9094": "TGSIM/I90_94_Moving_Trajectories.csv",
+"df294l1": "TGSIM/I294_L1_Trajectories.csv",
+"df294l2": "TGSIM/I294_L2_Trajectories.csv"}
 
-    #Save directory for plots
-    save_dir = '/Users/pedrambeigi/Desktop/BAA/Vehicles Modeling/Codes/Results/v2 (IDM, PT)/Plots'
+groups = { 
+    "df9094": ["I9094_L", "I9094_S", "I9094_A"],
+    "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
+    "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]}
 
-    #iterate through each dataset and group
-    for df_key, df_path in datasets.items():
-        df = pd.read_csv(df_path)
-        df = df.sort_values(by='time')
-        df['time'] = df['time'].round(1)
-        if df_key == "df395":
-            pos = "yloc-kf"
-        else:
-            pos = "xloc-kf"
-        for group in groups[df_key]:
-            # Define the current group
-            outname = str("PT_")+str(group)
-            AVs = eval(group)
-            all_params = []
-            params_list = []
+#Save directory for plots
+save_dir = '/Users/pedrambeigi/Desktop/BAA/Vehicles Modeling/Codes/Results/v2 (IDM, PT)/Plots'
 
-            for data in AVs:
-                follower_id, run_index = data
-                sdf, ldf = extract_subject_and_leader_data(df, follower_id, run_index)
-                print (follower_id)
-                # Check if sdf is empty
-                if sdf.empty:
-                    print(f"No data found for Follower ID {follower_id} and Run Index {run_index}. Skipping...")
-                    continue
-                else:
-                    total_time = len(ldf) * 0.1
-                    time_step, num_steps = 0.1, round(total_time / 0.1)
-                    timex = np.linspace(0, total_time, num_steps)
-                    leader_position, leader_speed = ldf[pos].tolist(), ldf['speed-kf'].tolist()
-                    target_position, target_speed = sdf[pos].tolist(), sdf['speed-kf'].tolist()
-                    best_params, best_error, best_metrics = genetic_algorithm()
-                    all_params.append(best_params)
-                    params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
-                    #print (params_list)
-                    sim_position, sim_speed, acl = simulate_car_following(best_params)
-                    plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
-            
-            visualize_parameter_distributions(all_params)
-            metrics_names = list(best_metrics.keys())
-            columns = ['Follower_ID', 'Run_Index', 'Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm', 'Error'] + metrics_names
-            params_df = pd.DataFrame(params_list, columns=columns)
-            params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
+#iterate through each dataset and group
+for df_key, df_path in datasets.items():
+    df = pd.read_csv(df_path)
+    df = df.sort_values(by='time')
+    df['time'] = df['time'].round(1)
+    if df_key == "df395":
+        pos = "yloc-kf"
+    else:
+        pos = "xloc-kf"
+    for group in groups[df_key]:
+        # Define the current group
+        outname = str("PT_")+str(group)
+        AVs = eval(group)
+        all_params = []
+        params_list = []
+
+        for data in AVs:
+            follower_id, run_index = data
+            sdf, ldf = extract_subject_and_leader_data(df, follower_id, run_index)
+            print (follower_id)
+            # Check if sdf is empty
+            if sdf.empty:
+                print(f"No data found for Follower ID {follower_id} and Run Index {run_index}. Skipping...")
+                continue
+            else:
+                total_time = len(ldf) * 0.1
+                time_step, num_steps = 0.1, round(total_time / 0.1)
+                timex = np.linspace(0, total_time, num_steps)
+                leader_position, leader_speed = ldf[pos].tolist(), ldf['speed-kf'].tolist()
+                target_position, target_speed = sdf[pos].tolist(), sdf['speed-kf'].tolist()
+                best_params, best_error, best_metrics = genetic_algorithm()
+                all_params.append(best_params)
+                params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
+                #print (params_list)
+                sim_position, sim_speed, acl = simulate_car_following(best_params)
+                plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
+        
+        visualize_parameter_distributions(all_params)
+        metrics_names = list(best_metrics.keys())
+        columns = ['Follower_ID', 'Run_Index', 'Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm', 'Error'] + metrics_names
+        params_df = pd.DataFrame(params_list, columns=columns)
+        params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
 
-
-if __name__ == '__main__':
-    main()
+ 
