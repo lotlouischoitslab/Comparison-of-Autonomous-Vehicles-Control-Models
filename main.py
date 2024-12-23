@@ -33,18 +33,18 @@ def find_leader_data(df, follower_id, run_index):
     for index, row in follower_data.iterrows():
         time = row['time']
         follower_x = row[pos]
-        follower_lane = row['lane-kf']
+        follower_lane = row['lane_kf']
         run_index = row['run_index']
 
         #find the leader
-        leader_data = df[(df['id'] != follower_id) & (df['time'] == time) & (df['lane-kf'] == follower_lane) & (df[pos] > follower_x) & (df['run_index'] == run_index)]
+        leader_data = df[(df['id'] != follower_id) & (df['time'] == time) & (df['lane_kf'] == follower_lane) & (df[pos] > follower_x) & (df['run_index'] == run_index)]
         
         if not leader_data.empty:
             nearest_leader_row = leader_data.loc[leader_data[pos].sub(follower_x).abs().idxmin()]
             
             leader_id = nearest_leader_row['id']
             leader_x_val = nearest_leader_row[pos]
-            leader_speed_val = nearest_leader_row['speed-kf']
+            leader_speed_val = nearest_leader_row['speed_kf']
 
             if leader_id not in leader_data_dict:
                 leader_data_dict[leader_id] = {'time': [], 'x_val': [], 'speed_val': []}
@@ -59,10 +59,10 @@ def find_leader_data(df, follower_id, run_index):
         leader_df = pd.DataFrame({'id': most_leading_leader_id,
                                    'time': leader_data['time'],
                                    pos: leader_data['x_val'],
-                                   'speed-kf': leader_data['speed_val'],
+                                   'speed_kf': leader_data['speed_val'],
                                    'run_index': run_index})
     else:
-        leader_df = pd.DataFrame(columns=['id', 'time', pos, 'speed-kf', 'run_index'])
+        leader_df = pd.DataFrame(columns=['id', 'time', pos, 'speed_kf', 'run_index'])
     
     return leader_df
 
@@ -197,7 +197,7 @@ def simulate_car_following(params):
     acl = np.zeros(num_steps)
     
     position[0] = sdf.iloc[0][pos]
-    speed[0] = sdf.iloc[0]['speed-kf']
+    speed[0] = sdf.iloc[0]['speed_kf']
     acl[0] = 0
 
     for i in range(1, num_steps):
@@ -403,8 +403,9 @@ groups = {
     "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
     "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]}
 
+
 #Save directory for plots
-save_dir = '/Users/pedrambeigi/Desktop/BAA/Vehicles Modeling/Codes/Results/v2 (IDM, PT)/Plots'
+save_dir = 'Results/'
 
 #iterate through each dataset and group
 for df_key, df_path in datasets.items():
@@ -412,9 +413,9 @@ for df_key, df_path in datasets.items():
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
     if df_key == "df395":
-        pos = "yloc-kf"
+        pos = "yloc_kf"
     else:
-        pos = "xloc-kf"
+        pos = "xloc_kf"
     for group in groups[df_key]:
         # Define the current group
         outname = str("PT_")+str(group)
@@ -434,8 +435,8 @@ for df_key, df_path in datasets.items():
                 total_time = len(ldf) * 0.1
                 time_step, num_steps = 0.1, round(total_time / 0.1)
                 timex = np.linspace(0, total_time, num_steps)
-                leader_position, leader_speed = ldf[pos].tolist(), ldf['speed-kf'].tolist()
-                target_position, target_speed = sdf[pos].tolist(), sdf['speed-kf'].tolist()
+                leader_position, leader_speed = ldf[pos].tolist(), ldf['speed_kf'].tolist()
+                target_position, target_speed = sdf[pos].tolist(), sdf['speed_kf'].tolist()
                 best_params, best_error, best_metrics = genetic_algorithm()
                 all_params.append(best_params)
                 params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
