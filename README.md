@@ -1,4 +1,4 @@
-# Model Comparison 
+# Control Model Comparison 
 
 ## Contributors:
 - **Louis Sungwoo Cho**
