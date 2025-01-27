@@ -284,6 +284,8 @@ def fitness(params):
     
     return fitness_value, error_metrics  # Return fitness and all error metrics
 
+    
+
 def crossover(parent1, parent2):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
@@ -394,6 +396,27 @@ def visualize_parameter_distributions(all_params):
     plt.show()
 
 
+# 4 is AV 
+def filter_data(df_key,df_path):
+     df = pd.read_csv(df_path) 
+     print(df_key)
+
+     if df_key == 'df395': 
+        df = df[df['type_most_common'] == 4]
+
+     elif df_key == 'df9094':
+        df = df[df['av'] == 'yes']
+     else:
+        df['acc'] = df['acc'].str.lower()
+        df = df[df['acc'] == 'yes']
+     
+
+     df = df.sort_values(by='time')
+     df['time'] = df['time'].round(1)
+     df.to_csv('temp/'+df_key+'edited.csv')
+     return df 
+
+
 
 def main():
     population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
@@ -415,24 +438,32 @@ def main():
     #     "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]}
 
     datasets = { 
+    "df395": "TGSIM/I395_Trajectories.csv",
     "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
     "df294l1": "TGSIM/I294_L1_Trajectories.csv",
-    "df294l2": "TGSIM/I294_L2_Trajectories.csv"}
+    "df294l2": "TGSIM/I294_L2_Trajectories.csv"
+    }
 
     groups = { 
+        "df395": ["I395_A", "I395_S", "I395_L"],
         "df9094": ["I9094_L", "I9094_S", "I9094_A"],
         "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
-        "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]}
+        "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]
+    }
 
 
     #Save directory for plots
     save_dir = 'Results/'
 
     #iterate through each dataset and group
-    for df_key, df_path in datasets.items():
-        df = pd.read_csv(df_path)
-        df = df.sort_values(by='time')
-        df['time'] = df['time'].round(1)
+    for df_key, df_path in datasets.items(): 
+        df = filter_data(df_key,df_path)
+
+
+        if True:
+            continue 
+
+
         if df_key == "df395":
             pos = "yloc_kf"
         else:
