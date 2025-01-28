@@ -197,7 +197,7 @@ def acceleration_calculator(i, t, vehicle_dict, kv=0.001, kp=0.005):
 
 
 def simulate_car_following(params):
-    global Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm
+    global Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm # Wm is indication that it was used for this code replace this and change the model with constant spacing
     Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm = params
     
     num_steps = round(total_time / time_step)
