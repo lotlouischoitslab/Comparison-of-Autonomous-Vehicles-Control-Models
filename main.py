@@ -416,7 +416,7 @@
 #      return df 
 
 
-# # def extract_av(df_key,)
+
 
 
 # def main():
@@ -537,8 +537,7 @@
 #             params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
 
-# if __name__ == "__main__":
-#     main()
+ 
 
 
 
@@ -550,20 +549,88 @@ import math
 from scipy.stats import norm
 import os
 
-#IDs for different types of Vehicles extracted before
+ 
+
+
+datasets = {
+"df395": "TGSIM/I395_Trajectories.csv",
+"df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
+"df294l1": "TGSIM/I294_L1_Trajectories.csv",
+"df294l2": "TGSIM/I294_L2_Trajectories.csv"
+}
+
+groups = {
+    "df395": ["I395_A", "I395_S", "I395_L"],
+    "df9094": ["I9094_L", "I9094_S", "I9094_A"],
+    "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
+    "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]
+    }
+
+
+I395_A, I9094_A, I294l1_A, I294l2_A = [], [], [], []
+
+
+for data_key, data_path in datasets.items():
+    temp_df = pd.read_csv(data_path)
+    print(data_key)
+ 
+
+    if data_key == 'df395': 
+        temp_df_av = temp_df[temp_df['type_most_common'] == 4]
+        temp_df_id = temp_df_av['id'].unique()
+        temp_df_run_index = temp_df_av['run_index'].values[0]
+
+
+        for id_val in temp_df_id:
+            I395_A.append([id_val,temp_df_run_index])
+
+
+    elif data_key == 'df9094':
+        temp_df_av = temp_df[temp_df['av'] == 'yes']
+        temp_df_id = temp_df_av['id'].unique()
+        temp_df_run_index = temp_df_av['run_index'].unique()
+    
+        print(temp_df_id)
+        print(temp_df_run_index) 
+
+        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
+            I9094_A.append([id_val, run_index_val])
+
+
+    elif data_key == 'df294l1':
+        temp_df['acc'] = temp_df['acc'].str.lower()
+        temp_df_av = temp_df[temp_df['acc'] == 'yes']
+        temp_df_id = temp_df_av['id'].unique()
+        temp_df_run_index = temp_df_av['run_index'].unique()
+        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
+            I294l1_A.append([id_val, run_index_val])
+
+    elif data_key == 'df294l2':
+        temp_df['acc'] = temp_df['acc'].str.lower()
+        temp_df_av = temp_df[temp_df['acc'] == 'yes']
+        temp_df_id = temp_df_av['id'].unique()
+        temp_df_run_index = temp_df_av['run_index'].unique()
+        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
+            I294l2_A.append([id_val, run_index_val])
+            
+
+# IDs for different types of Vehicles extracted before
 # I395 
-I395_A = [[694, 1], [1416, 1], [1779, 1], [2342, 1]]
+# I395_A = [[694, 1], [1416, 1], [1779, 1], [2342, 1]]
 
-# I90/94 
-I9094_A = [[5366, 1], [195, 2], [286, 3]] 
+# # I90/94 
+# I9094_A = [[5366, 1], [195, 2], [286, 3]] 
 
-# I294 L1 Moving
-I294l1_A = [[8, 1], [9, 1], [12, 1], [33, 3], [40, 3], [41, 3], [3, 7], [11, 7], [17, 7], [51, 8], [62, 8], [65, 8], [24, 9], [28, 9], [30, 9], [19, 11], [22, 11], [35, 11], [18, 19], [25, 19], [48, 20], [50, 20], [54, 20], [13, 21]]
+# # I294 L1 Moving
+# I294l1_A = [[8, 1], [9, 1], [12, 1], [33, 3], [40, 3], [41, 3], [3, 7], [11, 7], [17, 7], [51, 8], [62, 8], [65, 8], [24, 9], [28, 9], [30, 9], [19, 11], [22, 11], [35, 11], [18, 19], [25, 19], [48, 20], [50, 20], [54, 20], [13, 21]]
 
-# I294 L2 Moving
-I294l2_A = [[462, 5], [107, 23], [291, 28], [90, 29], [118, 30], [231, 31], [181, 33], [218, 35], [46, 36], [72, 38], [211, 41], [229, 42]]
+# # I294 L2 Moving
+# I294l2_A = [[462, 5], [107, 23], [291, 28], [90, 29], [118, 30], [231, 31], [181, 33], [218, 35], [46, 36], [72, 38], [211, 41], [229, 42]]
  
- 
+print(I395_A)
+print(I9094_A)
+print(I294l1_A)
+print(I294l2_A)
 
 population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
 accl_max, v_desired, Tcorr, RT = 3.0, 36.0, 20.0, 0.6 #suggested values from the paper and v_desired=36 is the v_desired from the data
@@ -924,19 +991,6 @@ def visualize_parameter_distributions(all_params):
     plt.show()
 
 
-
- 
-datasets = {
-"df395": "TGSIM/I395_Trajectories.csv",
-"df9094": "TGSIM/I90_94_Moving_Trajectories.csv",
-"df294l1": "TGSIM/I294_L1_Trajectories.csv",
-"df294l2": "TGSIM/I294_L2_Trajectories.csv"}
-
-groups = {
-    "df395": ["I395_A", "I395_S", "I395_L"],
-    "df9094": ["I9094_L", "I9094_S", "I9094_A"],
-    "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
-    "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]}
 
  
 
