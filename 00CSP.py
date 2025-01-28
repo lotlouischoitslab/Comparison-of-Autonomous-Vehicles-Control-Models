@@ -278,8 +278,7 @@ def simulate_car_following(params):
             'deltav': leader_speed[i-1] - speed[i-1], 
             'speed': speed[i-1], 
             'vehID': follower_id
-            
-            
+
             }
         
         acceleration, _, _ = acceleration_calculator(i, time[i], vehicle_dict, accl_max, v_desired, Gamma1, Gamma2, Wm, Wc, Tmax, Alpha, Beta, Tcorr, RT, np.random.default_rng())
