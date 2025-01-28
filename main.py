@@ -503,7 +503,8 @@ def main():
                     all_params.append(best_params)
                     params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
                     #print (params_list)
-                    sim_position, sim_speed, acl = simulate_car_following(params, total_time, time_step, sdf, pos, leader_position, leader_speed, accl_max, v_desired, Tcorr, RT, target_position, target_speed)
+                    sim_position, sim_speed, acl = simulate_car_following(best_params, total_time, time_step, sdf, pos, leader_position, leader_speed, accl_max, v_desired, Tcorr, RT, target_position, target_speed)
+                    
                     plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
             
             print(all_params)
