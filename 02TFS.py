@@ -453,7 +453,7 @@ def visualize_parameter_distributions(all_params):
 
 
 #Save directory for plots
-save_dir = 'Results/'
+save_dir = 'Results/02TFS/'
 
 #iterate through each dataset and group
 for df_key, df_path in datasets.items():

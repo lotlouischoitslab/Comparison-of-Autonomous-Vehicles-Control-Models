@@ -272,8 +272,17 @@ def simulate_car_following(params):
     for i in range(1, num_steps):
         dt = time_step
         desired_position = position[i - 1] + speed[i - 1] * dt
+
+        vehicle_dict = {
+            'gap': leader_position[i-1] - position[i-1], 
+            'deltav': leader_speed[i-1] - speed[i-1], 
+            'speed': speed[i-1], 
+            'vehID': follower_id
+            
+            
+            }
         
-        acceleration, _, _ = acceleration_calculator(i, time[i], {'gap': leader_position[i-1] - position[i-1], 'deltav': leader_speed[i-1] - speed[i-1], 'speed': speed[i-1], 'vehID': follower_id}, accl_max, v_desired, Gamma1, Gamma2, Wm, Wc, Tmax, Alpha, Beta, Tcorr, RT, np.random.default_rng())
+        acceleration, _, _ = acceleration_calculator(i, time[i], vehicle_dict, accl_max, v_desired, Gamma1, Gamma2, Wm, Wc, Tmax, Alpha, Beta, Tcorr, RT, np.random.default_rng())
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
@@ -453,7 +462,7 @@ def visualize_parameter_distributions(all_params):
 
 
 #Save directory for plots
-save_dir = 'Results/'
+save_dir = 'Results/00CSP/'
 
 #iterate through each dataset and group
 for df_key, df_path in datasets.items():
