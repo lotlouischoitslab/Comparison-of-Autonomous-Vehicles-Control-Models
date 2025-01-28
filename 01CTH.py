@@ -16,10 +16,10 @@ datasets = {
 }
 
 groups = {
-    "df395": ["I395_A", "I395_S", "I395_L"],
-    "df9094": ["I9094_L", "I9094_S", "I9094_A"],
-    "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
-    "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]
+    "df395": ["I395_A"],
+    "df9094": ["I9094_A"],
+    "df294l1": ["I294l1_A"],
+    "df294l2": ["I294l2_A"]
     }
 
 
@@ -27,8 +27,7 @@ I395_A, I9094_A, I294l1_A, I294l2_A = [], [], [], []
 
 
 for data_key, data_path in datasets.items():
-    temp_df = pd.read_csv(data_path)
-    print(data_key)
+    temp_df = pd.read_csv(data_path) 
  
 
     if data_key == 'df395': 
@@ -46,8 +45,7 @@ for data_key, data_path in datasets.items():
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
     
-        print(temp_df_id)
-        print(temp_df_run_index) 
+     
 
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I9094_A.append([id_val, run_index_val])
@@ -132,6 +130,7 @@ def find_leader_data(df, follower_id, run_index):
     else:
         leader_df = pd.DataFrame(columns=['id', 'time', pos, 'speed_kf', 'run_index'])
     
+ 
     return leader_df
 
 def extract_subject_and_leader_data(df, follower_id, run_index):
@@ -172,27 +171,15 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, t, vehicle_dict, kv=0.001, kp=0.005):
-    """
-    Calculate desired acceleration for a vehicle in a platoon.
-    
-    Parameters:
-        i (int): Index of the vehicle in consideration.
-        t (float): Current time step.
-        vehicle_dict (dict): Dictionary containing vehicle states.
-        kv (float): Gain parameter for velocity error.
-        kp (float): Gain parameter for position error.
-
-    Returns:
-        float: Computed acceleration.
-    """
+def acceleration_calculator(i, t, vehicle_dict, time_headway, lambda_var):
+ 
     
     # Extract relevant parameters
     delta_i = vehicle_dict['delta_i']   
     delta_i_dot = vehicle_dict['delta_i_dot']   
 
     # Compute acceleration
-    accl = -kv * delta_i_dot - kp * delta_i
+    accl = -(1/time_headway) * (delta_i_dot + lambda_var * delta_i)
 
     return accl
 
@@ -214,15 +201,21 @@ def simulate_car_following(params):
 
     for i in range(1, num_steps):
         dt = time_step
+        time_headway = 1.35 # time in seconds 
+        dmin = 3 # minimum clearance in meters 
+        lambda_var = 0.1
+        
+        # Compute desired spacing dynamically for CTH
+        desired_position = time_headway * speed[i-1]  + dmin 
+
         vehicle_dict = {
-            'delta_i': leader_position[i-1] - position[i-1] - desired_position, 
-            'delta_i_dot': (leader_position[i-1] - position[i-1] - desired_position)/dt, 
+            'delta_i': (leader_position[i-1] - position[i-1]) - desired_position,  # Spacing error
+            'delta_i_dot': leader_speed[i-1] - speed[i-1],  # Relative velocity
             'speed': speed[i-1], 
             'vehID': follower_id
-
-            }
+        }
         
-        acceleration = acceleration_calculator(i, time[i], vehicle_dict)
+        acceleration = acceleration_calculator(i, time[i], vehicle_dict,time_headway, lambda_var)
 
 
         acl[i] = acceleration
@@ -230,6 +223,9 @@ def simulate_car_following(params):
         position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
         
     return position, speed, acl
+
+
+
 
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
@@ -357,6 +353,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.title(f'Position vs time, FID: {follower_id}, LID: {int(most_leading_leader_id)}, run: {run_index}')
     plt.legend()
     plt.grid(True)
+
     plt.subplot(2, 1, 2)
     plt.plot(timex, leader_speed, label='Leader')
     plt.plot(timex, target_speed, label='Target')
@@ -366,11 +363,12 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.title(f'Speed vs time, FID: {follower_id}, LID: {int(most_leading_leader_id)}, run: {run_index}')
     plt.legend()
     plt.grid(True)
+
     plot_filename = os.path.join(save_dir, f'{outname}_FID_{follower_id}_LID_{int(most_leading_leader_id)}_run_{run_index}.png')
     plt.savefig(plot_filename)
     plt.close()
 
-def visualize_parameter_distributions(all_params):
+def visualize_parameter_distributions(all_params,save_dir,outname):
     param_names = ['Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm']
     num_params = len(param_names)
     
@@ -386,7 +384,8 @@ def visualize_parameter_distributions(all_params):
         axs[i].set_ylabel('Frequency')
     
     plt.tight_layout()
-    plt.show()
+    plot_filename = os.path.join(save_dir, f'{outname}_hist.png')
+    plt.savefig(plot_filename)
 
     #create box plots for each parameter
     plt.figure(figsize=(10, 6))
@@ -395,7 +394,8 @@ def visualize_parameter_distributions(all_params):
     plt.ylabel('Value')
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.show()
+    plot_filename = os.path.join(save_dir, f'{outname}_box.png')
+    plt.savefig(plot_filename)
 
 
 
@@ -424,7 +424,7 @@ for df_key, df_path in datasets.items():
         for data in AVs:
             follower_id, run_index = data
             sdf, ldf = extract_subject_and_leader_data(df, follower_id, run_index)
-            print (follower_id)
+           
             # Check if sdf is empty
             if sdf.empty:
                 print(f"No data found for Follower ID {follower_id} and Run Index {run_index}. Skipping...")
@@ -438,11 +438,11 @@ for df_key, df_path in datasets.items():
                 best_params, best_error, best_metrics = genetic_algorithm()
                 all_params.append(best_params)
                 params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
-                #print (params_list)
+                 
                 sim_position, sim_speed, acl = simulate_car_following(best_params)
                 plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
         
-        visualize_parameter_distributions(all_params)
+        visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
         columns = ['Follower_ID', 'Run_Index', 'Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)

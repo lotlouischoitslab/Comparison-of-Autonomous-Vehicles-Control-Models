@@ -16,10 +16,10 @@ datasets = {
 }
 
 groups = {
-    "df395": ["I395_A", "I395_S", "I395_L"],
-    "df9094": ["I9094_L", "I9094_S", "I9094_A"],
-    "df294l1": ["I294l1_L", "I294l1_S", "I294l1_A"],
-    "df294l2": ["I294l2_L", "I294l2_S", "I294l2_A"]
+    "df395": ["I395_A"],
+    "df9094": ["I9094_A"],
+    "df294l1": ["I294l1_A"],
+    "df294l2": ["I294l2_A"]
     }
 
 
@@ -27,8 +27,7 @@ I395_A, I9094_A, I294l1_A, I294l2_A = [], [], [], []
 
 
 for data_key, data_path in datasets.items():
-    temp_df = pd.read_csv(data_path)
-    print(data_key)
+    temp_df = pd.read_csv(data_path) 
  
 
     if data_key == 'df395': 
@@ -46,8 +45,7 @@ for data_key, data_path in datasets.items():
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
     
-        print(temp_df_id)
-        print(temp_df_run_index) 
+     
 
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I9094_A.append([id_val, run_index_val])
@@ -132,6 +130,7 @@ def find_leader_data(df, follower_id, run_index):
     else:
         leader_df = pd.DataFrame(columns=['id', 'time', pos, 'speed_kf', 'run_index'])
     
+ 
     return leader_df
 
 def extract_subject_and_leader_data(df, follower_id, run_index):
@@ -172,86 +171,33 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, t, vehicle, accl_max, v_desired, Gamma1, Gamma2, Wm, Wc, Tmax, Alpha, Beta, Tcorr, RT, prng):
-    So_D = 3 #default value by Talebpour
-    if (vehicle['gap'] - So_D) > 0.1:
-        Seff = vehicle['gap'] - So_D
-    else:
-        Seff = 0.1 #default value by Talebpour
-
-    if vehicle['deltav'] > (Seff / Tmax):
-        Tau = Seff / vehicle['deltav']
-    else:
-        Tau = Tmax
-
-    if vehicle['deltav'] == 0:
-        vehicle['deltav'] = 0.0000001 #default value by Talebpour
-    if Alpha == 0:
-        Alpha = 0.0000001 #default value by Talebpour
-    Zprime = Tau / (2.0 * Alpha * vehicle['speed'])
-    Zdoubleprime = 0.0
-
-    #if Wc * Zprime >= 1:
-    if Wc * Zprime > 0:
-        if (2.0 * math.log(Wc * Zprime)) >= 0:
-            a0 = 1
-            #Zstar = (-1 * math.sqrt(2.0 * math.log(Wc * Zprime))) / (math.sqrt(2.0 * math.pi)) #default by Talebpour
-            Zstar = -math.sqrt(2.0 * math.log((a0 * Wc * Tau) / (2.0 * math.sqrt(2.0 * math.pi) * Alpha * vehicle['speed']))) #changed to be consistent with paper
-            if np.abs(Zstar) > 0.05:
-                Zstar = 0.05 #added threshold to reduce fluctuations 
-    else:
-        Zstar = 0.0
-    Astar = (2.0 / Tau) * ((Seff / Tau) - vehicle['deltav'] + (Alpha * vehicle['speed'] * Zstar))
-    for NewtonCounter in range(3):
-        X = Astar 
-        if X >= 0:
-            if X == 0:
-                X = 0.0000001 #default value by Talebpour
-            Uptprime = Gamma1 * math.pow(X, Gamma1 - 1)
-            Uptdoubleprime = Gamma1 * (Gamma1 - 1) * math.pow(X, Gamma1 - 2)
-        else:
-            Uptprime = Wm * Gamma2 * pow(-X, Gamma2 - 1)
-            Uptdoubleprime = -Wm * Gamma2 * (Gamma2 - 1) * pow(-X, Gamma2 - 2)
-
-        Z = (vehicle['deltav'] + (0.5 * Astar * Tau) - (Seff / Tau)) / (Alpha * vehicle['deltav'])
-        fn = norm.cdf(Z)
-
-        F = Uptprime - Wc * fn * Zprime
-        Fprime = Uptdoubleprime - Wc * fn * (Z * math.pow(Zprime, 2.0) + Zdoubleprime)
-        if Fprime == 0:
-            Fprime = 0.000000000001 #default value by Talebpour
-
-        Astar = Astar - (F / Fprime)
-
-    X = Astar
-    if X >= 0:
-        Uptprime = Gamma1 * math.pow(X, Gamma1 - 1)
-        Uptdoubleprime = Gamma1 * (Gamma1 - 1) * math.pow(X, Gamma1 - 2)
-    else:
-        Uptprime = Wm * Gamma2 * pow(-X, Gamma2 - 1)
-        Uptdoubleprime = -Wm * Gamma2 * (Gamma2 - 1) * pow(-X, Gamma2 - 2)
-    Z = (vehicle['deltav'] + (0.5 * Astar * Tau) - (Seff / Tau)) / (Alpha * vehicle['deltav'])
-    fn = norm.cdf(Z)
-    F = Uptprime - Wc * fn * Zprime
-    Fprime = Uptdoubleprime - Wc * fn * (Z * math.pow(Zprime, 2.0) + Zdoubleprime)
-    if Fprime == 0:
-        Fprime = 0.000000000001
-
-    Var = -1.0 / (Beta * Fprime)
+def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var):
+    """
+    Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
     
-    Random_Wiener = np.random.rand()
-    Yt = math.exp(-1 * 0.1 / Tau) + math.sqrt(24.0 * 0.1 / Tau) * Random_Wiener #default value by Talebpour
-    accl_cf = Astar + Var * Yt
-    accl_ff = accl_max * (1 - (vehicle['speed'] / v_desired))
+    Parameters:
+        i (int): Index of the vehicle in consideration.
+        t (float): Current time step.
+        vehicle_dict (dict): Dictionary containing vehicle states.
+        rho_max (float): Maximum traffic density (vehicles per kilometer).
+        v_f (float): Free-flow speed (meters per second).
+        lambda_var (float): Control gain for spacing error.
 
-    accl_ = np.minimum(accl_cf, accl_ff)
+    Returns:
+        float: Computed acceleration.
+    """
+    # Extract relevant parameters
+    delta_i = vehicle_dict['delta_i']  # Spacing error
+    delta_i_dot = vehicle_dict['delta_i_dot']  # Relative velocity
+    v_i = vehicle_dict['speed']  # Current speed of the vehicle
 
-    if accl_ > 3: #default value by Talebpour
-        accl_ = 3
-    elif accl_ < -8: #default value by Talebpour
-        accl_ = -8
-    
-    return accl_, fn, Wc * fn
+    # Greenshield's-based relation for acceleration calculation
+    accl = -rho_max * (v_f - v_i) * (1 - v_i / v_f) * (delta_i_dot + lambda_var * delta_i)
+
+    # # Clamp acceleration to realistic limits
+    accl = max(-3, min(3, accl))  # For example, limits are [-3, 3] m/s^2
+    return accl
+
 
 
 def simulate_car_following(params):
@@ -271,15 +217,32 @@ def simulate_car_following(params):
 
     for i in range(1, num_steps):
         dt = time_step
-        desired_position = position[i - 1] + speed[i - 1] * dt
+        rho_max = 0.125 # jam density 
+        vh = speed[i-1] 
+        vf = 32 # free-flow speed in m/s 
+        lambda_var = 0.5
         
-        acceleration, _, _ = acceleration_calculator(i, time[i], {'gap': leader_position[i-1] - position[i-1], 'deltav': leader_speed[i-1] - speed[i-1], 'speed': speed[i-1], 'vehID': follower_id}, accl_max, v_desired, Gamma1, Gamma2, Wm, Wc, Tmax, Alpha, Beta, Tcorr, RT, np.random.default_rng())
+        # Compute desired spacing dynamically for CTH
+        desired_position = 1/(rho_max * (1 - vh/vf))
+
+        vehicle_dict = {
+            'delta_i': (leader_position[i-1] - position[i-1]) - desired_position,  # Spacing error
+            'delta_i_dot': leader_speed[i-1] - speed[i-1],  # Relative velocity
+            'speed': speed[i-1], 
+            'vehID': follower_id
+        }
+        
+        acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho_max, vf, lambda_var) 
+
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
         position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
         
     return position, speed, acl
+
+
+
 
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
@@ -407,6 +370,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.title(f'Position vs time, FID: {follower_id}, LID: {int(most_leading_leader_id)}, run: {run_index}')
     plt.legend()
     plt.grid(True)
+
     plt.subplot(2, 1, 2)
     plt.plot(timex, leader_speed, label='Leader')
     plt.plot(timex, target_speed, label='Target')
@@ -416,11 +380,12 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.title(f'Speed vs time, FID: {follower_id}, LID: {int(most_leading_leader_id)}, run: {run_index}')
     plt.legend()
     plt.grid(True)
+
     plot_filename = os.path.join(save_dir, f'{outname}_FID_{follower_id}_LID_{int(most_leading_leader_id)}_run_{run_index}.png')
     plt.savefig(plot_filename)
     plt.close()
 
-def visualize_parameter_distributions(all_params):
+def visualize_parameter_distributions(all_params,save_dir,outname):
     param_names = ['Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm']
     num_params = len(param_names)
     
@@ -436,7 +401,8 @@ def visualize_parameter_distributions(all_params):
         axs[i].set_ylabel('Frequency')
     
     plt.tight_layout()
-    plt.show()
+    plot_filename = os.path.join(save_dir, f'{outname}_hist.png')
+    plt.savefig(plot_filename)
 
     #create box plots for each parameter
     plt.figure(figsize=(10, 6))
@@ -445,7 +411,8 @@ def visualize_parameter_distributions(all_params):
     plt.ylabel('Value')
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.show()
+    plot_filename = os.path.join(save_dir, f'{outname}_box.png')
+    plt.savefig(plot_filename)
 
 
 
@@ -474,7 +441,7 @@ for df_key, df_path in datasets.items():
         for data in AVs:
             follower_id, run_index = data
             sdf, ldf = extract_subject_and_leader_data(df, follower_id, run_index)
-            print (follower_id)
+           
             # Check if sdf is empty
             if sdf.empty:
                 print(f"No data found for Follower ID {follower_id} and Run Index {run_index}. Skipping...")
@@ -488,11 +455,11 @@ for df_key, df_path in datasets.items():
                 best_params, best_error, best_metrics = genetic_algorithm()
                 all_params.append(best_params)
                 params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
-                #print (params_list)
+                 
                 sim_position, sim_speed, acl = simulate_car_following(best_params)
                 plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
         
-        visualize_parameter_distributions(all_params)
+        visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
         columns = ['Follower_ID', 'Run_Index', 'Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)

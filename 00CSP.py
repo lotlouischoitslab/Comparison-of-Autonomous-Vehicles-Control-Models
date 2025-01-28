@@ -216,12 +216,11 @@ def simulate_car_following(params):
         desired_position = 3 
 
         vehicle_dict = {
-            'delta_i': leader_position[i-1] - position[i-1] - desired_position, 
-            'delta_i_dot': (leader_position[i-1] - position[i-1] - desired_position)/dt, 
+            'delta_i': (leader_position[i-1] - position[i-1]) - desired_position, 
+            'delta_i_dot': (leader_speed[i-1] - speed[i-1]),  # Relative velocity
             'speed': speed[i-1], 
             'vehID': follower_id
-
-            }
+        }
         
         acceleration = acceleration_calculator(i, time[i], vehicle_dict)
         # print(acceleration)
