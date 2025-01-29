@@ -171,7 +171,94 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, t, vehicle_dict, kv=0.001, kp=0.005):
+
+ 
+
+def genetic_algorithm():
+    # Define parameter ranges including kv and kp 
+    
+    # Add kv and kp parameter ranges
+    kv_range = (0.0001, 0.01)
+    kp_range = (0.001, 0.05)
+
+    param_ranges = [kv_range, kp_range]
+
+    # Initialize population with random parameter values
+    population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
+    
+    best_error = float('inf')
+    best_individual = None
+    best_metrics = None
+    
+    for generation in range(num_generations):
+        # Evaluate fitness (simulate car-following behavior)
+        fitness_and_errors = [fitness(individual) for individual in population]
+        population_sorted = sorted(zip(population, fitness_and_errors), key=lambda x: x[1][0], reverse=True)
+        population = [ind for ind, _ in population_sorted]
+        
+        # Update best individual if a better one is found
+        current_best_error = population_sorted[0][1][1]['Total Difference']
+        if current_best_error < best_error:
+            best_error = current_best_error
+            best_individual = population_sorted[0][0]
+            best_metrics = population_sorted[0][1][1]
+
+        # Parent selection (top half of sorted population)
+        parents = population[:len(population) // 2]
+
+        # Crossover and mutation
+        children = []
+        while len(children) < (population_size - len(parents)):
+            parent1, parent2 = random.sample(parents, 2)
+            child1, child2 = crossover(parent1, parent2)
+            children.extend([mutate(child1), mutate(child2)])
+        
+        # Ensure population size remains constant
+        population = parents + children[:population_size - len(parents)]
+
+    # Return best parameters and performance metrics
+    return best_individual, best_error, best_metrics
+
+
+
+def simulate_car_following(params):
+    global kv, kp
+    kv, kp = params  # Extract kv, kp from params
+    
+    num_steps = round(total_time / time_step)
+    time = np.linspace(0, total_time, num_steps)
+
+    position = np.zeros(num_steps)
+    speed = np.zeros(num_steps)
+    acl = np.zeros(num_steps)
+
+    position[0] = sdf.iloc[0][pos]
+    speed[0] = sdf.iloc[0]['speed_kf']
+    acl[0] = 0
+
+    for i in range(1, num_steps):
+        dt = time_step
+        desired_position = 3  # Desired following distance
+
+        vehicle_dict = {
+            'delta_i': (leader_position[i-1] - position[i-1]) - desired_position,
+            'delta_i_dot': (leader_speed[i-1] - speed[i-1]),
+            'speed': speed[i-1],
+            'vehID': follower_id
+        }
+
+        # Use optimized kv and kp
+        acceleration = acceleration_calculator(i, time[i], vehicle_dict, kv, kp)
+
+        acl[i] = acceleration
+        speed[i] = speed[i - 1] + acceleration * dt
+        position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
+
+    return position, speed, acl
+
+
+
+def acceleration_calculator(i, t, vehicle_dict, kv, kp):
     """
     Calculate desired acceleration for a vehicle in a platoon.
     
@@ -179,57 +266,23 @@ def acceleration_calculator(i, t, vehicle_dict, kv=0.001, kp=0.005):
         i (int): Index of the vehicle in consideration.
         t (float): Current time step.
         vehicle_dict (dict): Dictionary containing vehicle states.
-        kv (float): Gain parameter for velocity error.
-        kp (float): Gain parameter for position error.
+        kv (float): Gain parameter for velocity error (optimized).
+        kp (float): Gain parameter for position error (optimized).
 
     Returns:
         float: Computed acceleration.
     """
     
-    # Extract relevant parameters
     delta_i = vehicle_dict['delta_i']   
     delta_i_dot = vehicle_dict['delta_i_dot']   
 
-    # Compute acceleration
+    # Compute acceleration with optimized gains
     accl = -kv * delta_i_dot - kp * delta_i
 
     return accl
 
 
-def simulate_car_following(params):
-    global Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm # Wm is indication that it was used for this code replace this and change the model with constant spacing
-    Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm = params
-    
-    num_steps = round(total_time / time_step)
-    time = np.linspace(0, total_time, num_steps)
-    
-    position = np.zeros(num_steps)
-    speed = np.zeros(num_steps)
-    acl = np.zeros(num_steps)
-    
-    position[0] = sdf.iloc[0][pos]
-    speed[0] = sdf.iloc[0]['speed_kf']
-    acl[0] = 0
-
-    for i in range(1, num_steps):
-        dt = time_step
-        desired_position = 3 
-
-        vehicle_dict = {
-            'delta_i': (leader_position[i-1] - position[i-1]) - desired_position, 
-            'delta_i_dot': (leader_speed[i-1] - speed[i-1]),  # Relative velocity
-            'speed': speed[i-1], 
-            'vehID': follower_id
-        }
-        
-        acceleration = acceleration_calculator(i, time[i], vehicle_dict)
-        # print(acceleration)
-
-        acl[i] = acceleration
-        speed[i] = speed[i - 1] + acceleration * dt
-        position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
-        
-    return position, speed, acl
+ 
 
 
 def fitness(params):
@@ -303,49 +356,7 @@ def mutate(child):
             child[i] += random.uniform(-0.1, 0.1)
     return child
 
-def genetic_algorithm():
-    #define parameter ranges for PT model
-    Tmax_range = (2, 8.0)
-    Alpha_range = (0, 0.6)
-    Beta_range = (2, 8)
-    Wc_range = (60000, 130000)
-    Gamma1_range = (0.3, 2.0)
-    Gamma2_range = (0.3, 2.0)
-    Wm_range = (2, 8.0)
 
-    #population with random parameter values
-    population = [[random.uniform(*range_) for range_ in (Tmax_range, Alpha_range, Beta_range, Wc_range, Gamma1_range, Gamma2_range, Wm_range)]
-                  for _ in range(population_size)]
-    
-    best_error = float('inf')
-    best_individual = None
-    best_metrics = None
-    
-    for generation in range(num_generations):
-        #evaluate fitness and errors
-        fitness_and_errors = [fitness(individual) for individual in population]
-        population_sorted = sorted(zip(population, fitness_and_errors), key=lambda x: x[1][0], reverse=True)
-        population = [ind for ind, _ in population_sorted]
-        
-        #Update best individual and best error if a better one is found
-        current_best_error = population_sorted[0][1][1]['Total Difference']  # Error is the second element of the fitness_and_errors tuple
-        if current_best_error < best_error:
-            best_error = current_best_error
-            best_individual = population_sorted[0][0]
-            best_metrics = population_sorted[0][1][1]  # Best error metrics
-        
-        #Parent selection (top half of the sorted population)
-        parents = population[:len(population) // 2]
-        
-        children = []
-        while len(children) < (population_size - len(parents)):
-            parent1, parent2 = random.sample(parents, 2)
-            child1, child2 = crossover(parent1, parent2)
-            children.extend([mutate(child1), mutate(child2)])
-        population = parents + children[:population_size - len(parents)]
-    
-    #return the best individual, best error, and best error metrics after all generations
-    return best_individual, best_error, best_metrics
 
 def plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir):
     plt.figure(figsize=(10, 12))
