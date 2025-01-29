@@ -460,7 +460,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm', 'Error'] + metrics_names
+        columns = ['kv', 'kp'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
