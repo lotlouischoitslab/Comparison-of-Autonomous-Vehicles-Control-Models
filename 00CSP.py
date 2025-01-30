@@ -15,6 +15,8 @@ datasets = {
 "df294l2": "TGSIM/I294_L2_Trajectories.csv"
 }
 
+ 
+
 groups = {
     "df395": ["I395_A"],
     "df9094": ["I9094_A"],
@@ -78,9 +80,20 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 40, 80, 0.5  #simulation parameters
+
+
+population_size = 30
+num_generations = 100 
+mutation_rate = 0.1
+delta =  0.1   #simulation parameters
+
+
+accl_min = -2
+accl_max = 0.5
+
 
 most_leading_leader_id = None
+
 
 def find_leader_data(df, follower_id, run_index):
     global most_leading_leader_id
@@ -112,7 +125,7 @@ def find_leader_data(df, follower_id, run_index):
             leader_data_dict[leader_id]['speed_val'].append(leader_speed_val)
 
     if leader_data_dict:
-        most_leading_leader_id = max(leader_data_dict, key=lambda x: len(leader_data_dict[x]['time']))
+        most_leading_leader_id = max(leader_data_dict, key=lambda x: len(leader_data_dict[x]['time'])) 
         leader_data = leader_data_dict[most_leading_leader_id]
         leader_df = pd.DataFrame({'id': most_leading_leader_id,
                                    'time': leader_data['time'],
@@ -172,14 +185,13 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
   
 
 def genetic_algorithm(): 
-    
     # Add kv and kp parameter ranges
-    kv_range = (1, 10)  # Increased damping
-    kp_range = (1, 10)  # Reduced overreaction
+    kv_range = (0.001, 3)  # Increased damping
+    kp_range = (0.0001, 1.5)  # Reduced overreaction
+    S_desired_range = (3, 6) # keep this in a safe range 
 
-
-
-    param_ranges = [kv_range, kp_range]
+    # Define parameter ranges for each parameter 
+    param_ranges = [kv_range, kp_range, S_desired_range]
 
     # Initialize population with random parameter values
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -218,38 +230,52 @@ def genetic_algorithm():
     return best_individual, best_error, best_metrics
 
 
+ 
+
 
 def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired):
+    v_desired = 36 
     """
-    Implements a constant spacing policy using a proportional-derivative (PD) controller.
-    
+    Implements a constant spacing policy using a PD controller and integrates free-flow acceleration.
+
     Args:
+        i (int): Index of vehicle in the platoon.
+        t (float): Current time step.
         vehicle (dict): Contains 'gap' (distance to lead vehicle), 'deltav' (speed difference), and 'speed' (ego speed).
+        accl_min (float): Minimum allowable acceleration (deceleration limit).
         accl_max (float): Maximum allowable acceleration.
-        v_desired (float): Desired velocity.
-        k_p (float): Proportional gain for gap control.
-        k_d (float): Derivative gain for speed control.
+        kv (float): Derivative gain for speed control.
+        kp (float): Proportional gain for gap control.
         S_desired (float): Desired constant spacing distance.
-    
+        v_desired (float): Desired free-flow velocity.
+
     Returns:
-        float: Calculated acceleration.
+        float: Calculated acceleration with free-flow adjustment.
     """
-    # Compute acceleration using a PD controller to maintain the constant gap
+    # Compute acceleration using PD controller to maintain spacing (Car-Following Model)
     gap_error = vehicle['gap'] - S_desired
     speed_error = vehicle['deltav']
-    
-    accl = (kp * gap_error + kv * speed_error)
-    
-    # Cap acceleration within physical limits
-    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
-    
-    return accl
+
+    accl_cf = (kp * gap_error + kv * speed_error)  # Car-following acceleration
+
+    # Compute Free-Flow Acceleration (Tends to move towards desired speed)
+    accl_ff = accl_max * (1 - (vehicle['speed'] / v_desired))
+
+    # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
+    accl_ = np.minimum(accl_cf, accl_ff)
+
+    # Apply acceleration constraints
+    if accl_ > accl_max: #default value by Talebpour
+        accl_ = accl_max
+    elif accl_ < accl_min: #default value by Talebpour
+        accl_ = accl_min
+
+    return accl_
+
 
 def simulate_car_following(params):
-    kv, kp = params 
-    S_desired = 3
-    accl_min = -2
-    accl_max = 2
+    kv, kp, S_desired = params  
+
 
     """
     Simulates a vehicle following a lead car using a constant spacing policy.
@@ -370,7 +396,7 @@ def crossover(parent1, parent2):
 def mutate(child):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            mutation_value = random.uniform(-mutation_rate, mutation_rate)  # Small mutation step
+            mutation_value = random.uniform(-delta, delta)  # Small mutation step
             child[i] += mutation_value  # Apply mutation
  
     return child
@@ -407,7 +433,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['kv','kp']
+    param_names = ['kv','kp','S_desired']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -454,6 +480,7 @@ for df_key, df_path in datasets.items():
         pos = "yloc_kf"
     else:
         pos = "xloc_kf"
+
     for group in groups[df_key]:
         # Define the current group
         outname = str("PT_")+str(group)
@@ -464,7 +491,8 @@ for df_key, df_path in datasets.items():
         for data in AVs:
             follower_id, run_index = data
             sdf, ldf = extract_subject_and_leader_data(df, follower_id, run_index)
-           
+            
+    
             # Check if sdf is empty
             if sdf.empty:
                 print(f"No data found for Follower ID {follower_id} and Run Index {run_index}. Skipping...")
@@ -486,7 +514,7 @@ for df_key, df_path in datasets.items():
 
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index','kv', 'kp', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index','kv', 'kp','S_desired', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

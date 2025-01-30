@@ -10,10 +10,11 @@ import os
 
 datasets = {
 "df395": "TGSIM/I395_Trajectories.csv",
-"df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
+"df9094": "TGSIM/I90_I94_Stationary_Trajectories.csv",
 "df294l1": "TGSIM/I294_L1_Trajectories.csv",
 "df294l2": "TGSIM/I294_L2_Trajectories.csv"
 }
+
 
 groups = {
     "df395": ["I395_A"],
@@ -86,7 +87,16 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
+
+
+population_size = 40
+num_generations = 80 
+mutation_rate = 0.1
+delta =  0.1   #simulation parameters
+
+
+accl_min = -2
+accl_max = 0.5
 
 most_leading_leader_id = None
 
@@ -177,7 +187,7 @@ def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_mi
     delta_i_dot = vehicle_dict['delta_i_dot']
 
     # Compute acceleration
-    accl = (1 / time_headway) * (delta_i_dot + lambda_param * delta_i)
+    accl = -(1 / time_headway) * (delta_i_dot + lambda_param * delta_i)
     accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
 
     return accl
@@ -187,8 +197,7 @@ def simulate_car_following(params):
     global lambda_param
     lambda_param = params[0]  # Assign lambda_param from GA
 
-    accl_min = -2
-    accl_max = 2
+ 
 
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -294,14 +303,14 @@ def crossover(parent1, parent2):
 def mutate(child):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            child[i] += random.uniform(-0.1, 0.1)
+            child[i] += random.uniform(-delta, delta)
     return child
 
 
 
 
 def genetic_algorithm():
-    lamb_range = (0.02, 10)
+    lamb_range = (0.2, 10)
     param_ranges = [lamb_range]
 
     # Population with random lambda parameters
