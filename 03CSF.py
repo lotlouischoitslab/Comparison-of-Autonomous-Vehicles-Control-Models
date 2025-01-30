@@ -381,7 +381,7 @@ def mutate(child):
 def genetic_algorithm():
     #define parameter ranges for PT model
     lamb_range = (0.02, 10)
-    gamma_range = (0.3, 2.0)
+    gamma_range = (5, 20)
      
 
     #population with random parameter values
