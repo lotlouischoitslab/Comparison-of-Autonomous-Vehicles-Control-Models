@@ -78,7 +78,7 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 30, 200, 0.1  #simulation parameters 
+population_size, num_generations, mutation_rate = 50, 90, 0.1  #simulation parameters 
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -245,8 +245,7 @@ def acceleration_calculator(i, t, vehicle, accl_min, accl_max, k_p, k_d, S_desir
     return accl_
 
 def simulate_car_following(params):
-    k_p = 0.5
-    k_d = 0.3
+    kv, kp = params 
     S_desired = 3
     accl_min = -2 
     accl_max = 3 
@@ -283,7 +282,7 @@ def simulate_car_following(params):
         }
 
         # Compute acceleration using the constant spacing policy
-        acceleration = acceleration_calculator(i, time[i], vehicle_state,accl_min, accl_max, k_p, k_d, S_desired)
+        acceleration = acceleration_calculator(i, time[i], vehicle_state,accl_min, accl_max, kv, kp, S_desired)
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
