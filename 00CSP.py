@@ -45,8 +45,7 @@ for data_key, data_path in datasets.items():
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
     
-     
-
+      
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I9094_A.append([id_val, run_index_val])
 
@@ -56,38 +55,30 @@ for data_key, data_path in datasets.items():
         temp_df_av = temp_df[temp_df['acc'] == 'yes']
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
+
+
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l1_A.append([id_val, run_index_val])
+
 
     elif data_key == 'df294l2':
         temp_df['acc'] = temp_df['acc'].str.lower()
         temp_df_av = temp_df[temp_df['acc'] == 'yes']
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
+
+
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l2_A.append([id_val, run_index_val])
 
 
-# IDs for different types of Vehicles extracted before
-# I395 
-# I395_A = [[694, 1], [1416, 1], [1779, 1], [2342, 1]]
 
-# # I90/94 
-# I9094_A = [[5366, 1], [195, 2], [286, 3]] 
-
-# # I294 L1 Moving
-# I294l1_A = [[8, 1], [9, 1], [12, 1], [33, 3], [40, 3], [41, 3], [3, 7], [11, 7], [17, 7], [51, 8], [62, 8], [65, 8], [24, 9], [28, 9], [30, 9], [19, 11], [22, 11], [35, 11], [18, 19], [25, 19], [48, 20], [50, 20], [54, 20], [13, 21]]
-
-# # I294 L2 Moving
-# I294l2_A = [[462, 5], [107, 23], [291, 28], [90, 29], [118, 30], [231, 31], [181, 33], [218, 35], [46, 36], [72, 38], [211, 41], [229, 42]]
- 
 print(I395_A)
 print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
-accl_max, v_desired, Tcorr, RT = 3.0, 36.0, 20.0, 0.6 #suggested values from the paper and v_desired=36 is the v_desired from the data
+population_size, num_generations, mutation_rate = 30, 200, 0.1  #simulation parameters 
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -132,6 +123,11 @@ def find_leader_data(df, follower_id, run_index):
     
  
     return leader_df
+ 
+
+
+
+
 
 def extract_subject_and_leader_data(df, follower_id, run_index):
     sdf = df[(df['id'] == follower_id) & (df['run_index'] == run_index)].round(2)
@@ -170,16 +166,17 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         ldf['time'], sdf['time'] = ldf['time'] - start_time, sdf['time'] - start_time
         return sdf, ldf
 
-
-
  
 
-def genetic_algorithm():
-    # Define parameter ranges including kv and kp 
+  
+
+def genetic_algorithm(): 
     
     # Add kv and kp parameter ranges
-    kv_range = (0.0001, 0.01)
-    kp_range = (0.001, 0.05)
+    kv_range = (1.3, 2.5)  # Increased damping
+    kp_range = (1.5, 4.0)  # Reduced overreaction
+
+
 
     param_ranges = [kv_range, kp_range]
 
@@ -221,66 +218,78 @@ def genetic_algorithm():
 
 
 
+def acceleration_calculator(i, t, vehicle, accl_min, accl_max, k_p, k_d, S_desired):
+    """
+    Implements a constant spacing policy using a proportional-derivative (PD) controller.
+    
+    Args:
+        vehicle (dict): Contains 'gap' (distance to lead vehicle), 'deltav' (speed difference), and 'speed' (ego speed).
+        accl_max (float): Maximum allowable acceleration.
+        v_desired (float): Desired velocity.
+        k_p (float): Proportional gain for gap control.
+        k_d (float): Derivative gain for speed control.
+        S_desired (float): Desired constant spacing distance.
+    
+    Returns:
+        float: Calculated acceleration.
+    """
+    # Compute acceleration using a PD controller to maintain the constant gap
+    gap_error = vehicle['gap'] - S_desired
+    speed_error = vehicle['deltav']
+    
+    accl_ = k_p * gap_error + k_d * speed_error
+    
+    # Cap acceleration within physical limits
+    accl_ = np.clip(accl_, accl_min, accl_max)  # Using acceleration bounds from Talebpour
+    
+    return accl_
+
 def simulate_car_following(params):
-    global kv, kp
-    kv, kp = params  # Extract kv, kp from params
+    k_p = 0.5
+    k_d = 0.3
+    S_desired = 3
+    accl_min = -2 
+    accl_max = 3 
+
+    """
+    Simulates a vehicle following a lead car using a constant spacing policy.
+    
+    Args:
+        params (tuple): Contains simulation parameters.
+        k_p (float): Proportional gain for maintaining spacing.
+        k_d (float): Derivative gain for damping oscillations.
+        S_desired (float): Desired following distance.
+    
+    Returns:
+        tuple: position, speed, and acceleration arrays.
+    """ 
     
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
-
+    
     position = np.zeros(num_steps)
     speed = np.zeros(num_steps)
     acl = np.zeros(num_steps)
-
+    
     position[0] = sdf.iloc[0][pos]
     speed[0] = sdf.iloc[0]['speed_kf']
-    acl[0] = 0
-
+    
     for i in range(1, num_steps):
         dt = time_step
-        desired_position = 3  # Desired following distance
-
-        vehicle_dict = {
-            'delta_i': (leader_position[i-1] - position[i-1]) - desired_position,
-            'delta_i_dot': (leader_speed[i-1] - speed[i-1]),
-            'speed': speed[i-1],
-            'vehID': follower_id
+        vehicle_state = {
+            'gap': leader_position[i - 1] - position[i - 1],
+            'deltav': leader_speed[i - 1] - speed[i - 1],
+            'speed': speed[i - 1]
         }
 
-        # Use optimized kv and kp
-        acceleration = acceleration_calculator(i, time[i], vehicle_dict, kv, kp)
+        # Compute acceleration using the constant spacing policy
+        acceleration = acceleration_calculator(i, time[i], vehicle_state,accl_min, accl_max, k_p, k_d, S_desired)
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
-        position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
-
+        position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration * (dt ** 2)
+        
     return position, speed, acl
-
-
-
-def acceleration_calculator(i, t, vehicle_dict, kv, kp):
-    """
-    Calculate desired acceleration for a vehicle in a platoon.
-    
-    Parameters:
-        i (int): Index of the vehicle in consideration.
-        t (float): Current time step.
-        vehicle_dict (dict): Dictionary containing vehicle states.
-        kv (float): Gain parameter for velocity error (optimized).
-        kp (float): Gain parameter for position error (optimized).
-
-    Returns:
-        float: Computed acceleration.
-    """
-    
-    delta_i = vehicle_dict['delta_i']   
-    delta_i_dot = vehicle_dict['delta_i_dot']   
-
-    # Compute acceleration with optimized gains
-    accl = -kv * delta_i_dot - kp * delta_i
-
-    return accl
-
 
  
 
@@ -344,17 +353,28 @@ def fitness(params):
     
     return fitness_value, error_metrics  # Return fitness and all error metrics
 
+
+ 
+
+
+
+
 def crossover(parent1, parent2):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
     return child1, child2
 
+ 
+
 def mutate(child):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            child[i] += random.uniform(-0.1, 0.1)
+            mutation_value = random.uniform(-mutation_rate, mutation_rate)  # Small mutation step
+            child[i] += mutation_value  # Apply mutation
+ 
     return child
+
 
 
 
@@ -384,8 +404,10 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.savefig(plot_filename)
     plt.close()
 
+
+
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm']
+    param_names = ['kv','kp']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -420,6 +442,8 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
 
 #Save directory for plots
 save_dir = 'Results/00CSP/'
+
+
 
 #iterate through each dataset and group
 for df_key, df_path in datasets.items():
@@ -458,9 +482,11 @@ for df_key, df_path in datasets.items():
                 sim_position, sim_speed, acl = simulate_car_following(best_params)
                 plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
         
+
+
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['kv', 'kp'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index','kv', 'kp', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
