@@ -173,7 +173,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 def genetic_algorithm(): 
     
     # Add kv and kp parameter ranges
-    kv_range = (1.3, 2.5)  # Increased damping
+    kv_range = (1.2, 5.5)  # Increased damping
     kp_range = (1.5, 4.0)  # Reduced overreaction
 
 
@@ -218,7 +218,7 @@ def genetic_algorithm():
 
 
 
-def acceleration_calculator(i, t, vehicle, accl_min, accl_max, k_p, k_d, S_desired):
+def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired):
     """
     Implements a constant spacing policy using a proportional-derivative (PD) controller.
     
@@ -237,7 +237,7 @@ def acceleration_calculator(i, t, vehicle, accl_min, accl_max, k_p, k_d, S_desir
     gap_error = vehicle['gap'] - S_desired
     speed_error = vehicle['deltav']
     
-    accl_ = k_p * gap_error + k_d * speed_error
+    accl_ = (kp * gap_error + kv * speed_error)
     
     # Cap acceleration within physical limits
     accl_ = np.clip(accl_, accl_min, accl_max)  # Using acceleration bounds from Talebpour
@@ -255,8 +255,8 @@ def simulate_car_following(params):
     
     Args:
         params (tuple): Contains simulation parameters.
-        k_p (float): Proportional gain for maintaining spacing.
-        k_d (float): Derivative gain for damping oscillations.
+        kv (float): Proportional gain for maintaining rel vel. 
+        kp (float): Proportional gain for maintaining spacing. 
         S_desired (float): Desired following distance.
     
     Returns:
