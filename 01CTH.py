@@ -86,7 +86,8 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 20, 80, 0.1  #simulation parameters 
+population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
+
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -170,13 +171,14 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param):
+def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max):
     # Extract relevant parameters
     delta_i = vehicle_dict['delta_i']
     delta_i_dot = vehicle_dict['delta_i_dot']
 
     # Compute acceleration
     accl = (1 / time_headway) * (delta_i_dot + lambda_param * delta_i)
+    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
 
     return accl
 
@@ -184,6 +186,9 @@ def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param):
 def simulate_car_following(params):
     global lambda_param
     lambda_param = params[0]  # Assign lambda_param from GA
+
+    accl_min = -2
+    accl_max = 2
 
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -211,7 +216,7 @@ def simulate_car_following(params):
             'vehID': follower_id
         }
 
-        acceleration = acceleration_calculator(i, vehicle_dict, time_headway, lambda_param)
+        acceleration = acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max)
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt

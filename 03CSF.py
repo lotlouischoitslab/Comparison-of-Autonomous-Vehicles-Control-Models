@@ -87,7 +87,6 @@ print(I294l1_A)
 print(I294l2_A)
 
 population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
-accl_max, v_desired, Tcorr, RT = 3.0, 36.0, 20.0, 0.6 #suggested values from the paper and v_desired=36 is the v_desired from the data
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -171,7 +170,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, t, vehicle_dict, sigma, K, dmin, amax, lambda_var, gamma, j_i):
+def acceleration_calculator(i, t, vehicle_dict, sigma, K, dmin, amax, lambda_var, gamma, j_i, accl_min, accl_max):
     """
     Calculate desired acceleration for a vehicle using the Constant Safety Factor (CSF) Spacing Policy.
     
@@ -203,10 +202,10 @@ def acceleration_calculator(i, t, vehicle_dict, sigma, K, dmin, amax, lambda_var
  
 
     # Compute acceleration based on spacing error and relative velocity
-    accl = -(1 / denominator) * (lambda_var * delta_i + delta_i_dot)
+    accl = (1 / denominator) * (lambda_var * delta_i + delta_i_dot)
 
     # Clamp acceleration to realistic limits
-    accl = max(-amax, min(amax, accl))  # Limits are [-amax, amax] m/s^2
+    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
 
@@ -237,9 +236,11 @@ def simulate_car_following(params):
         speed (array): Array of follower vehicle speeds over time.
         acl (array): Array of follower vehicle accelerations over time.
     """
-    # Unpack parameters
-    Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm = params
-    
+    # Unpack parameters 
+    lambda_param, gamma_param = params   # Assign lambda_param from GA
+    accl_min = -2
+    accl_max = 2
+
     # Time and number of steps
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -291,7 +292,7 @@ def simulate_car_following(params):
 
         # Calculate acceleration
         acceleration = acceleration_calculator(
-            i, time[i], vehicle_dict, sigma, K, dmin, amax, lambda_var, gamma, j_i
+            i, time[i], vehicle_dict, sigma, K, dmin, amax, lambda_var, gamma, j_i, accl_min, accl_max
         )
 
         # Update state variables
@@ -379,16 +380,12 @@ def mutate(child):
 
 def genetic_algorithm():
     #define parameter ranges for PT model
-    Tmax_range = (2, 8.0)
-    Alpha_range = (0, 0.6)
-    Beta_range = (2, 8)
-    Wc_range = (60000, 130000)
-    Gamma1_range = (0.3, 2.0)
-    Gamma2_range = (0.3, 2.0)
-    Wm_range = (2, 8.0)
+    lamb_range = (0.02, 10)
+    gamma_range = (0.3, 2.0)
+     
 
     #population with random parameter values
-    population = [[random.uniform(*range_) for range_ in (Tmax_range, Alpha_range, Beta_range, Wc_range, Gamma1_range, Gamma2_range, Wm_range)]
+    population = [[random.uniform(*range_) for range_ in (lamb_range, gamma_range)]
                   for _ in range(population_size)]
     
     best_error = float('inf')
@@ -448,7 +445,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.close()
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm']
+    param_names = ['lamb', 'gamma']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -523,7 +520,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'lamb',   'gamma', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

@@ -170,7 +170,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var):
+def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var, accl_min, accl_max):
     """
     Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
     
@@ -192,6 +192,7 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var):
 
     # Greenshield's-based relation for acceleration calculation
     accl = rho_max * (v_f - v_i) * (1 - v_i / v_f) * (delta_i_dot + lambda_var * delta_i) 
+    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
 
@@ -199,6 +200,8 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var):
 def simulate_car_following(params):
     global lambda_param
     lambda_param = params[0]  # Assign lambda_param from GA
+    accl_min = -2
+    accl_max = 2
 
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -228,7 +231,7 @@ def simulate_car_following(params):
             'vehID': follower_id
         }
         
-        acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho_max, vf, lambda_var) 
+        acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho_max, vf, lambda_var, accl_min, accl_max) 
 
 
         acl[i] = acceleration
