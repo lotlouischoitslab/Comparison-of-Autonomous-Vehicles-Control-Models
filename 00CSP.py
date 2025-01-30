@@ -78,7 +78,7 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
+population_size, num_generations, mutation_rate = 40, 80, 0.5  #simulation parameters
 
 most_leading_leader_id = None
 
