@@ -78,7 +78,7 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 50, 90, 0.1  #simulation parameters 
+population_size, num_generations, mutation_rate = 60, 100, 0.1  #simulation parameters 
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -173,8 +173,8 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 def genetic_algorithm(): 
     
     # Add kv and kp parameter ranges
-    kv_range = (1.2, 5.5)  # Increased damping
-    kp_range = (1.5, 4.0)  # Reduced overreaction
+    kv_range = (1, 6)  # Increased damping
+    kp_range = (1, 6)  # Reduced overreaction
 
 
 
@@ -247,8 +247,8 @@ def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired
 def simulate_car_following(params):
     kv, kp = params 
     S_desired = 3
-    accl_min = -2 
-    accl_max = 3 
+    accl_min = -5 
+    accl_max = 5
 
     """
     Simulates a vehicle following a lead car using a constant spacing policy.

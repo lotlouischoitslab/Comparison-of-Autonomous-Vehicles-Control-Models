@@ -86,8 +86,7 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
-accl_max, v_desired, Tcorr, RT = 3.0, 36.0, 20.0, 0.6 #suggested values from the paper and v_desired=36 is the v_desired from the data
+population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters 
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -192,18 +191,15 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var):
     v_i = vehicle_dict['speed']  # Current speed of the vehicle
 
     # Greenshield's-based relation for acceleration calculation
-    accl = -rho_max * (v_f - v_i) * (1 - v_i / v_f) * (delta_i_dot + lambda_var * delta_i)
-
-    # # Clamp acceleration to realistic limits
-    accl = max(-3, min(3, accl))  # For example, limits are [-3, 3] m/s^2
+    accl = rho_max * (v_f - v_i) * (1 - v_i / v_f) * (delta_i_dot + lambda_var * delta_i) 
     return accl
 
 
 
 def simulate_car_following(params):
-    global Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm
-    Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm = params
-    
+    global lambda_param
+    lambda_param = params[0]  # Assign lambda_param from GA
+
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
     
@@ -215,8 +211,8 @@ def simulate_car_following(params):
     speed[0] = sdf.iloc[0]['speed_kf']
     acl[0] = 0
 
-    for i in range(1, num_steps):
-        dt = time_step
+    for i in range(1, num_steps): 
+        dt = time_step # time step
         rho_max = 0.125 # jam density 
         vh = speed[i-1] 
         vf = 32 # free-flow speed in m/s 
@@ -315,49 +311,48 @@ def mutate(child):
             child[i] += random.uniform(-0.1, 0.1)
     return child
 
-def genetic_algorithm():
-    #define parameter ranges for PT model
-    Tmax_range = (2, 8.0)
-    Alpha_range = (0, 0.6)
-    Beta_range = (2, 8)
-    Wc_range = (60000, 130000)
-    Gamma1_range = (0.3, 2.0)
-    Gamma2_range = (0.3, 2.0)
-    Wm_range = (2, 8.0)
 
-    #population with random parameter values
-    population = [[random.uniform(*range_) for range_ in (Tmax_range, Alpha_range, Beta_range, Wc_range, Gamma1_range, Gamma2_range, Wm_range)]
-                  for _ in range(population_size)]
+
+def genetic_algorithm():
+    lamb_range = (0.02, 10)
+    param_ranges = [lamb_range]
+
+    # Population with random lambda parameters
+    population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
     
     best_error = float('inf')
     best_individual = None
     best_metrics = None
-    
+
     for generation in range(num_generations):
-        #evaluate fitness and errors
-        fitness_and_errors = [fitness(individual) for individual in population]
-        population_sorted = sorted(zip(population, fitness_and_errors), key=lambda x: x[1][0], reverse=True)
+        # Evaluate fitness
+        fitness_values = [fitness(individual) for individual in population]
+        population_sorted = sorted(zip(population, fitness_values), key=lambda x: x[1], reverse=True)
         population = [ind for ind, _ in population_sorted]
-        
-        #Update best individual and best error if a better one is found
-        current_best_error = population_sorted[0][1][1]['Total Difference']  # Error is the second element of the fitness_and_errors tuple
+
+        # Update best individual if a better one is found
+        current_best_error = population_sorted[0][1][1]['Total Difference']
+
+        # Update best individual
         if current_best_error < best_error:
             best_error = current_best_error
             best_individual = population_sorted[0][0]
-            best_metrics = population_sorted[0][1][1]  # Best error metrics
-        
-        #Parent selection (top half of the sorted population)
+            best_metrics = population_sorted[0][1][1]
+
+        # Parent selection
         parents = population[:len(population) // 2]
-        
         children = []
+
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
             child1, child2 = crossover(parent1, parent2)
             children.extend([mutate(child1), mutate(child2)])
+
         population = parents + children[:population_size - len(parents)]
-    
-    #return the best individual, best error, and best error metrics after all generations
+
     return best_individual, best_error, best_metrics
+
+
 
 def plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir):
     plt.figure(figsize=(10, 12))
@@ -386,7 +381,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.close()
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm']
+    param_names = ['lamb']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -394,11 +389,10 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
     
     #histograms for each parameter
     fig, axs = plt.subplots(1, num_params, figsize=(20, 4))
-    for i in range(num_params):
-        axs[i].hist(all_params_array[:, i], bins=20, color='skyblue', edgecolor='black')
-        axs[i].set_title(param_names[i])
-        axs[i].set_xlabel('Value')
-        axs[i].set_ylabel('Frequency')
+    axs.hist(all_params_array[:, 0], bins=20, color='skyblue', edgecolor='black')
+    axs.set_title(param_names[0])
+    axs.set_xlabel('Value')
+    axs.set_ylabel('Frequency')
     
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_hist.png')
@@ -461,7 +455,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'lamb', 'Error']+ metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

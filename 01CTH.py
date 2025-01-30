@@ -176,7 +176,7 @@ def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param):
     delta_i_dot = vehicle_dict['delta_i_dot']
 
     # Compute acceleration
-    accl = -(1 / time_headway) * (delta_i_dot + lambda_param * delta_i)
+    accl = (1 / time_headway) * (delta_i_dot + lambda_param * delta_i)
 
     return accl
 
@@ -197,7 +197,7 @@ def simulate_car_following(params):
     acl[0] = 0
 
     for i in range(1, num_steps):
-        dt = time_step
+        dt = time_step # time step
         time_headway = 1.35  # time in seconds
         dmin = 3  # minimum clearance in meters
 
@@ -296,7 +296,7 @@ def mutate(child):
 
 
 def genetic_algorithm():
-    lamb_range = (0.02, 0.5)
+    lamb_range = (0.02, 10)
     param_ranges = [lamb_range]
 
     # Population with random lambda parameters
