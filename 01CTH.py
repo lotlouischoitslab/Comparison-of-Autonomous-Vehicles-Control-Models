@@ -90,22 +90,22 @@ print(I294l2_A)
 
 
 population_size = 40
-num_generations = 60 
-mutation_rate = 0.1
-delta =  0.01   #simulation parameters
+num_generations = 80 
+mutation_rate = 0.2
+delta =  0.05   # simulation parameters
 
 
-th_min = 0.5 
-th_max = 2.0 
+th_min = 0.9
+th_max = 1.5 
 
-dmin_min = 4
-dmin_max = 10 
+dmin_min = 2
+dmin_max = 5 
 
-lamb_min = 0.5
-lamb_max = 2.0
+lamb_min = 0.1
+lamb_max = 0.4
   
 
-accl_min = -4
+accl_min = -3
 accl_max = 3
 most_leading_leader_id = None
 
@@ -320,25 +320,27 @@ def crossover(parent1, parent2):
 
 
 
-def mutate(child):
+def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
+            child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
+
     return child
 
 
 
 
-def genetic_algorithm():
 
+def genetic_algorithm():
     th_range = (th_min, th_max)
     dmin_range = (dmin_min, dmin_max)
     lamb_range = (lamb_min, lamb_max)  
     
-
+    # Define parameter ranges
     param_ranges = [th_range, dmin_range, lamb_range]
 
-    # Population with random lambda parameters
+    # Initialize population
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
     
     best_error = float('inf')
@@ -348,13 +350,12 @@ def genetic_algorithm():
     for generation in range(num_generations):
         # Evaluate fitness
         fitness_values = [fitness(individual) for individual in population]
-        population_sorted = sorted(zip(population, fitness_values), key=lambda x: x[1], reverse=True)
+        population_sorted = sorted(zip(population, fitness_values), key=lambda x: x[1][0], reverse=True)
         population = [ind for ind, _ in population_sorted]
 
         # Update best individual if a better one is found
         current_best_error = population_sorted[0][1][1]['Total Difference']
 
-        # Update best individual
         if current_best_error < best_error:
             best_error = current_best_error
             best_individual = population_sorted[0][0]
@@ -367,11 +368,12 @@ def genetic_algorithm():
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
             child1, child2 = crossover(parent1, parent2)
-            children.extend([mutate(child1), mutate(child2)])
+            children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
         population = parents + children[:population_size - len(parents)]
 
     return best_individual, best_error, best_metrics
+
 
 
 

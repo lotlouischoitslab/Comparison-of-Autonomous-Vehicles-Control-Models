@@ -85,13 +85,11 @@ print(I294l2_A)
 
 # Simulation Parameters
 population_size = 40
-num_generations = 60
-mutation_rate = 0.1
-delta =  0.01
-accl_min = -4
-accl_max = 3
-S_desired_min = 3 
-S_desired_max = 10 
+num_generations = 80
+mutation_rate = 0.2
+delta =  0.05
+accl_min = -2
+accl_max = 2
 most_leading_leader_id = None 
 
 
@@ -186,12 +184,13 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 def genetic_algorithm(): 
     # Add kv and kp parameter ranges
-    kv_range = (2, 5)  # Increased damping
-    kp_range = (0.2, 2)  # Reduced overreaction 
-    S_desired_range = (S_desired_min, S_desired_max)
+    kp_range = (0.1, 1.5)  # Lower range to prevent excessive following 
+    kv_range = (2.0, 5.0)  # Increase damping to smooth response
+
+
 
     # Define parameter ranges for each parameter 
-    param_ranges = [kv_range, kp_range, S_desired_range]
+    param_ranges = [kv_range, kp_range]
 
     # Initialize population with random parameter values
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -221,7 +220,7 @@ def genetic_algorithm():
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
             child1, child2 = crossover(parent1, parent2)
-            children.extend([mutate(child1), mutate(child2)])
+            children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
         
         # Ensure population size remains constant
         population = parents + children[:population_size - len(parents)]
@@ -263,13 +262,15 @@ def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired
 
     # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
     accl = np.minimum(accl_cf, accl_ff) 
-    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
- 
+    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds   
     return accl
 
 
+
+
 def simulate_car_following(params):
-    kv, kp, S_desired = params  
+    kv, kp = params   
+    S_desired = 3
 
 
     """
@@ -388,12 +389,12 @@ def crossover(parent1, parent2):
 
  
 
-def mutate(child):
+def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            mutation_value = random.uniform(-delta, delta)  # Small mutation step
-            child[i] += mutation_value  # Apply mutation
- 
+            child[i] += random.uniform(-delta, delta)
+            child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
+
     return child
 
  
@@ -430,7 +431,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['kv','kp', 'S_desired']
+    param_names = ['kv','kp']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -511,7 +512,7 @@ for df_key, df_path in datasets.items():
 
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index','kv', 'kp','S_desired', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index','kv', 'kp', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
