@@ -93,6 +93,9 @@ most_leading_leader_id = None
 kmin = 0.01
 kmax = 0.9
 
+S_desired_min = 3 
+S_desired_max = 9
+
 
 def find_leader_data(df, follower_id, run_index):
     global most_leading_leader_id
@@ -187,9 +190,10 @@ def genetic_algorithm():
     # Add kv and kp parameter ranges
     kv_range = (kmin, kmax)  # Increased damping
     kp_range = (kmin, kmax)  # Reduced overreaction 
+    S_desired_range = (S_desired_min, S_desired_max)
 
     # Define parameter ranges for each parameter 
-    param_ranges = [kv_range, kp_range]
+    param_ranges = [kv_range, kp_range, S_desired_range]
 
     # Initialize population with random parameter values
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -231,8 +235,7 @@ def genetic_algorithm():
  
 
 
-def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp):
-    S_desired = 3
+def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired): 
     v_desired = 36 
     """
     Implements a constant spacing policy using a PD controller and integrates free-flow acceleration.
@@ -268,7 +271,7 @@ def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp):
 
 
 def simulate_car_following(params):
-    kv, kp = params  
+    kv, kp, S_desired = params  
 
 
     """
@@ -303,7 +306,7 @@ def simulate_car_following(params):
         }
 
         # Compute acceleration using the constant spacing policy
-        acceleration = acceleration_calculator(i, time[i], vehicle_state,accl_min, accl_max, kv, kp)
+        acceleration = acceleration_calculator(i, time[i], vehicle_state,accl_min, accl_max, kv, kp, S_desired)
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
@@ -395,20 +398,7 @@ def mutate(child):
  
     return child
 
-
-# def mutate(child):
-#     for i in range(len(child)):
-#         if random.random() < mutation_rate:
-#             mutation_value = random.uniform(-delta, delta)  
-#             child[i] += mutation_value  
-
-#             # Ensure kv and kp remain non-negative
-#             if i == 0:  # `kv`
-#                 child[i] = max(child[i], kmin)  
-#             elif i == 1:  # `kp`
-#                 child[i] = max(child[i], kmin)  
-
-#     return child
+ 
 
 
 
@@ -442,7 +432,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['kv','kp']
+    param_names = ['kv','kp', 'S_desired']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -523,7 +513,7 @@ for df_key, df_path in datasets.items():
 
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index','kv', 'kp', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index','kv', 'kp','S_desired', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

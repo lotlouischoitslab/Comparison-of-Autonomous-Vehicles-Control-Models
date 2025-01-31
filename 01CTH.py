@@ -10,7 +10,7 @@ import os
 
 datasets = {
 "df395": "TGSIM/I395_Trajectories.csv",
-"df9094": "TGSIM/I90_I94_Stationary_Trajectories.csv",
+"df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
 "df294l1": "TGSIM/I294_L1_Trajectories.csv",
 "df294l2": "TGSIM/I294_L2_Trajectories.csv"
 }
@@ -93,6 +93,19 @@ population_size = 40
 num_generations = 80 
 mutation_rate = 0.1
 delta =  0.1   #simulation parameters
+
+
+th_min = 0.5 
+th_max = 3.0 
+
+dmin_min = 2 
+dmin_max = 10 
+
+lamb_min = 0.15 
+lamb_max = 5 
+
+h_min = 0.5 
+h_max = 5.0
 
 
 accl_min = -1
@@ -313,8 +326,14 @@ def mutate(child):
 
 
 def genetic_algorithm():
-    lamb_range = (0.2, 10)
-    param_ranges = [lamb_range]
+
+    th_range = (th_min, th_max)
+    dmin_range = (dmin_min, dmin_max)
+    lamb_range = (lamb_min, lamb_max) 
+    h_range = (h_min, h_max)     
+    
+
+    param_ranges = [th_range, dmin_range, lamb_range, h_range]
 
     # Population with random lambda parameters
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -381,20 +400,22 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 
+
+
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['lamb']
+    param_names = ['th','dmin', 'lamb', 'h']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
-    all_params_array = np.array(all_params).reshape(-1, 1)
+    all_params_array = np.array(all_params)
     
     #histograms for each parameter
     fig, axs = plt.subplots(1, num_params, figsize=(20, 4))
-     
-    axs.hist(all_params_array[:, 0], bins=20, color='skyblue', edgecolor='black')
-    axs.set_title(param_names[0])
-    axs.set_xlabel('Value')
-    axs.set_ylabel('Frequency')
+    for i in range(num_params):
+        axs[i].hist(all_params_array[:, i], bins=20, color='skyblue', edgecolor='black')
+        axs[i].set_title(param_names[i])
+        axs[i].set_xlabel('Value')
+        axs[i].set_ylabel('Frequency')
     
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_hist.png')
@@ -409,7 +430,6 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_box.png')
     plt.savefig(plot_filename)
-
 
 
  
@@ -456,8 +476,8 @@ for df_key, df_path in datasets.items():
                 plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
         
         visualize_parameter_distributions(all_params,save_dir,outname)
-        metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'lamb', 'Error'] + metrics_names
+        metrics_names = list(best_metrics.keys()) 
+        columns = ['Follower_ID', 'Run_Index', 'th','dmin', 'lamb', 'h', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
