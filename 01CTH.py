@@ -69,44 +69,33 @@ for data_key, data_path in datasets.items():
             I294l2_A.append([id_val, run_index_val])
 
 
-# IDs for different types of Vehicles extracted before
-# I395 
-# I395_A = [[694, 1], [1416, 1], [1779, 1], [2342, 1]]
 
-# # I90/94 
-# I9094_A = [[5366, 1], [195, 2], [286, 3]] 
 
-# # I294 L1 Moving
-# I294l1_A = [[8, 1], [9, 1], [12, 1], [33, 3], [40, 3], [41, 3], [3, 7], [11, 7], [17, 7], [51, 8], [62, 8], [65, 8], [24, 9], [28, 9], [30, 9], [19, 11], [22, 11], [35, 11], [18, 19], [25, 19], [48, 20], [50, 20], [54, 20], [13, 21]]
-
-# # I294 L2 Moving
-# I294l2_A = [[462, 5], [107, 23], [291, 28], [90, 29], [118, 30], [231, 31], [181, 33], [218, 35], [46, 36], [72, 38], [211, 41], [229, 42]]
- 
 print(I395_A)
 print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
 
-
+# Simulation Parameters
 population_size = 40
 num_generations = 80 
 mutation_rate = 0.2
-delta =  0.05   # simulation parameters
+delta =  0.005    
 
 
-th_min = 0.9
-th_max = 1.5 
+th_min = 1.0
+th_max = 3.0 
 
-dmin_min = 2
-dmin_max = 5 
+dmin_min = 3
+dmin_max = 6
 
 lamb_min = 0.1
 lamb_max = 0.4
   
 
-accl_min = -3
-accl_max = 3
+accl_min = -7
+accl_max = 2
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -211,11 +200,7 @@ def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_mi
 
 
 def simulate_car_following(params):
-    global lambda_param
-    lambda_param = params[0]  # Assign lambda_param from GA
-
- 
-
+    time_headway, dmin, lamb = params
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
 
@@ -228,9 +213,7 @@ def simulate_car_following(params):
     acl[0] = 0
 
     for i in range(1, num_steps):
-        dt = time_step # time step
-        time_headway = 1.35  # time in seconds
-        dmin = 3  # minimum clearance in meters
+        dt = time_step # time step 
 
         # Compute desired spacing dynamically for CTH
         S_desired = time_headway * speed[i - 1] + dmin
@@ -241,7 +224,7 @@ def simulate_car_following(params):
             'speed': speed[i - 1]
         }
 
-        acceleration = acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max, S_desired)
+        acceleration = acceleration_calculator(i, vehicle_dict, time_headway, lamb, accl_min, accl_max, S_desired)
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
