@@ -85,7 +85,7 @@ delta =  0.005
 
 
 th_min = 1.0
-th_max = 3.0 
+th_max = 5.0 
 
 dmin_min = 3
 dmin_max = 6
@@ -94,7 +94,7 @@ lamb_min = 0.1
 lamb_max = 0.4
   
 
-accl_min = -7
+accl_min = -2
 accl_max = 2
 most_leading_leader_id = None
 
