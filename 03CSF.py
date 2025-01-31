@@ -82,23 +82,26 @@ print(I294l2_A)
 population_size = 40
 num_generations = 80 
 mutation_rate = 0.2
-delta =  0.005    
+delta = 0.005
 
-dmin_min = 3
-dmin_max = 6
+dmin_min = 5
+dmin_max = 12   
 
-td_min = 0.5
+
+td_min = 0.7
 td_max = 2.0 
 
-K_min = 0.1 
-K_max = 2.0
+K_min = 0.9
+K_max = 1.5
 
-lamb_min = 0.1
-lamb_max = 0.4
 
-gamma_min = 0.1
-gamma_max = 1.0 
-  
+lamb_min = 0.01
+lamb_max = 0.1
+
+
+gamma_min = 3.0
+gamma_max = 9.0
+
 
 accl_min = -2
 accl_max = 2
@@ -185,7 +188,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, t, vehicle_dict, td, K, dmin, amax, lambda_var, gamma, j_i, accl_min, accl_max):
+def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, accl_min, accl_max):
     """
     Calculate desired acceleration for a vehicle using the Constant Safety Factor (CSF) Spacing Policy.
     
@@ -205,21 +208,24 @@ def acceleration_calculator(i, t, vehicle_dict, td, K, dmin, amax, lambda_var, g
     Returns:
         float: Computed acceleration.
     """
-    # Extract relevant parameters
-    delta_i = vehicle_dict['delta_i']  # Spacing error
-    delta_i_dot = vehicle_dict['delta_i_dot']  # Relative velocity
-    v_i = vehicle_dict['speed']  # Current speed of the vehicle
+    v_desired = 32
 
- 
+    # Extract relevant parameters
+    gap_error = vehicle_dict['gap'] + Dstop
+    speed_error = vehicle_dict['deltav']
+    vi = vehicle_dict['speed']
 
     # Compute denominator for acceleration calculation
-    denominator = td - gamma * j_i * v_i
+    denominator = max(td - gamma * ji * vi, 1e-8)  # Prevents division by zero
  
-
     # Compute acceleration based on spacing error and relative velocity
-    accl = (1 / denominator) * (lambda_var * delta_i + delta_i_dot)
+    accl_cf = -(1 / denominator) * (speed_error + lamb * gap_error)
 
-    # Clamp acceleration to realistic limits
+    # Compute Free-Flow Acceleration (Tends to move towards desired speed)
+    accl_ff = accl_max * (1 - (vehicle_dict['speed'] / v_desired))
+
+    # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
+    accl = np.minimum(accl_cf, accl_ff) 
     accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
@@ -271,14 +277,13 @@ def simulate_car_following(params):
     # Simulation loop
     for i in range(1, num_steps):
         dt = time_step
-        v_i = speed[i - 1]
-        amax = 7.32 
+        vi = speed[i - 1] 
 
       
 
         # Calculate stopping distance
-        Dstop = v_i**2 / (2 * amax)
-        ddes = dmin + td * v_i + K * Dstop
+        Dstop = vi**2 / (2 * accl_max)
+        ddes = dmin + td * vi + K * Dstop
 
         # Ensure leader data is available
         if i >= len(leader_position) or i >= len(leader_speed):
@@ -286,9 +291,9 @@ def simulate_car_following(params):
 
         # Dynamically calculate j_i
         if i > 1:
-            j_i = min(abs(acl[:i].min()), amax)  # Minimum acceleration (max deceleration experienced so far)
+            ji = min(abs(acl[:i].min()), accl_max)  # Minimum acceleration (max deceleration experienced so far)
         else:
-            j_i = amax  # Assume max deceleration initially
+            ji = accl_max  # Assume max deceleration initially
 
         # Vehicle state dictionary
         vehicle_dict = { 
@@ -297,7 +302,7 @@ def simulate_car_following(params):
             'speed': speed[i - 1]
         }
         
-        acceleration = acceleration_calculator(i, time[i], vehicle_dict, dmin, td, K, lamb,gamma,Dstop) 
+        acceleration = acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, accl_min, accl_max) 
 
         # Update state variables
         acl[i] = acceleration
@@ -330,7 +335,7 @@ def fitness(params):
     mae = mae_position + mae_speed
     
     mape_position = np.mean(np.abs(diff_position / np.array(target_position))) * 100
-    mape_speed = np.mean(np.abs(diff_speed / np.array(target_speed))) * 100
+    mape_speed = np.mean(np.abs(diff_speed / (np.array(target_speed) + 1e-8))) * 100
     mape = (mape_position + mape_speed) / 2
     
     nrmse_position = rmse_position / (np.max(target_position) - np.min(target_position))
@@ -387,16 +392,17 @@ def mutate(child, param_ranges):
     return child
 
 
-def genetic_algorithm():
-    #define parameter ranges for PT model
+def genetic_algorithm(): 
     dmin_range = (dmin_min, dmin_max)
     td_range = (td_min, td_max)
     K_range = (K_min, K_max)
     lamb_range = (lamb_min, lamb_max)
     gamma_range = (gamma_min, gamma_max)     
+    param_ranges = [dmin_range, td_range, K_range,lamb_range,gamma_range]
+
 
     #population with random parameter values
-    population = [[random.uniform(*range_) for range_ in (dmin_range, td_range, K_range,lamb_range,gamma_range)]
+    population = [[random.uniform(*range_) for range_ in (param_ranges)]
                   for _ in range(population_size)]
     
     best_error = float('inf')

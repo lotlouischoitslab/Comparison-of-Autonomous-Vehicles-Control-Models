@@ -189,13 +189,20 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_mi
     Returns:
         float: Computed acceleration.
     """
+    v_desired = 32
+    
     # Extract relevant parameters
     gap_error = vehicle_dict['gap'] + desired_position
     speed_error = vehicle_dict['deltav']
     vi = vehicle_dict['speed']
+ 
+    accl_cf = -rho_max * (vf - vi) * (1 - vi / vf) * (speed_error + lambda_var * gap_error) 
 
-    # Greenshield's-based relation for acceleration calculation
-    accl = -rho_max * (vf - vi) * (1 - vi / vf) * (speed_error + lambda_var * gap_error) 
+    # Compute Free-Flow Acceleration (Tends to move towards desired speed)
+    accl_ff = accl_max * (1 - (vehicle_dict['speed'] / v_desired))
+
+    # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
+    accl = np.minimum(accl_cf, accl_ff) 
     accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
