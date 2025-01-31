@@ -95,8 +95,8 @@ mutation_rate = 0.1
 delta =  0.1   #simulation parameters
 
 
-accl_min = -2
-accl_max = 0.5
+accl_min = -1
+accl_max = 1
 
 most_leading_leader_id = None
 
@@ -181,13 +181,13 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max):
+def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max, S_desired):
     # Extract relevant parameters
-    delta_i = vehicle_dict['delta_i']
-    delta_i_dot = vehicle_dict['delta_i_dot']
+    gap_error = vehicle_dict['gap'] + S_desired
+    speed_error = vehicle_dict['deltav']
 
     # Compute acceleration
-    accl = -(1 / time_headway) * (delta_i_dot + lambda_param * delta_i)
+    accl = -(1 / time_headway) * (speed_error + lambda_param * gap_error)
     accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
 
     return accl
@@ -216,16 +216,15 @@ def simulate_car_following(params):
         dmin = 3  # minimum clearance in meters
 
         # Compute desired spacing dynamically for CTH
-        desired_position = time_headway * speed[i - 1] + dmin
+        S_desired = time_headway * speed[i - 1] + dmin
 
-        vehicle_dict = {
-            'delta_i': (leader_position[i - 1] - position[i - 1]) - desired_position,  # Spacing error
-            'delta_i_dot': leader_speed[i - 1] - speed[i - 1],  # Relative velocity
-            'speed': speed[i - 1],
-            'vehID': follower_id
+        vehicle_dict = { 
+            'gap':  position[i - 1] - leader_position[i - 1],
+            'deltav': speed[i - 1] - leader_speed[i - 1],
+            'speed': speed[i - 1]
         }
 
-        acceleration = acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max)
+        acceleration = acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max, S_desired)
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
@@ -254,7 +253,7 @@ def fitness(params):
     mae = mae_position + mae_speed
     
     mape_position = np.mean(np.abs(diff_position / np.array(target_position))) * 100
-    mape_speed = np.mean(np.abs(diff_speed / np.array(target_speed))) * 100
+    mape_speed = np.mean(np.abs(diff_speed / (np.array(target_speed) + 1e-8))) * 100
     mape = (mape_position + mape_speed) / 2
     
     nrmse_position = rmse_position / (np.max(target_position) - np.min(target_position))
@@ -294,11 +293,15 @@ def fitness(params):
     
     return fitness_value, error_metrics  # Return fitness and all error metrics
 
+
+
 def crossover(parent1, parent2):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
     return child1, child2
+
+
 
 def mutate(child):
     for i in range(len(child)):
@@ -375,6 +378,8 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plot_filename = os.path.join(save_dir, f'{outname}_FID_{follower_id}_LID_{int(most_leading_leader_id)}_run_{run_index}.png')
     plt.savefig(plot_filename)
     plt.close()
+
+
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
     param_names = ['lamb']

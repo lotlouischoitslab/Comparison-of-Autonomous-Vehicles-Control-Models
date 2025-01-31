@@ -82,17 +82,16 @@ print(I294l2_A)
 
 
 
-population_size = 30
-num_generations = 100 
-mutation_rate = 0.1
-delta =  0.1   #simulation parameters
-
-
-accl_min = -2
-accl_max = 0.5
-
-
+# Simulation Parameters
+population_size = 40
+num_generations = 80 
+mutation_rate = 0.2
+delta =  0.005
+accl_min = -1 
+accl_max = 1 
 most_leading_leader_id = None
+kmin = 0.01
+kmax = 0.9
 
 
 def find_leader_data(df, follower_id, run_index):
@@ -186,12 +185,11 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 def genetic_algorithm(): 
     # Add kv and kp parameter ranges
-    kv_range = (0.001, 3)  # Increased damping
-    kp_range = (0.0001, 1.5)  # Reduced overreaction
-    S_desired_range = (3, 6) # keep this in a safe range 
+    kv_range = (kmin, kmax)  # Increased damping
+    kp_range = (kmin, kmax)  # Reduced overreaction 
 
     # Define parameter ranges for each parameter 
-    param_ranges = [kv_range, kp_range, S_desired_range]
+    param_ranges = [kv_range, kp_range]
 
     # Initialize population with random parameter values
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -233,7 +231,8 @@ def genetic_algorithm():
  
 
 
-def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired):
+def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp):
+    S_desired = 3
     v_desired = 36 
     """
     Implements a constant spacing policy using a PD controller and integrates free-flow acceleration.
@@ -253,28 +252,23 @@ def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired
         float: Calculated acceleration with free-flow adjustment.
     """
     # Compute acceleration using PD controller to maintain spacing (Car-Following Model)
-    gap_error = vehicle['gap'] - S_desired
+    gap_error = vehicle['gap'] + S_desired
     speed_error = vehicle['deltav']
 
-    accl_cf = (kp * gap_error + kv * speed_error)  # Car-following acceleration
+    accl_cf = - kv * speed_error -kp * gap_error  # Car-following acceleration
 
     # Compute Free-Flow Acceleration (Tends to move towards desired speed)
     accl_ff = accl_max * (1 - (vehicle['speed'] / v_desired))
 
     # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
-    accl_ = np.minimum(accl_cf, accl_ff)
-
-    # Apply acceleration constraints
-    if accl_ > accl_max: #default value by Talebpour
-        accl_ = accl_max
-    elif accl_ < accl_min: #default value by Talebpour
-        accl_ = accl_min
-
-    return accl_
+    accl = np.minimum(accl_cf, accl_ff) 
+    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
+ 
+    return accl
 
 
 def simulate_car_following(params):
-    kv, kp, S_desired = params  
+    kv, kp = params  
 
 
     """
@@ -284,7 +278,7 @@ def simulate_car_following(params):
         params (tuple): Contains simulation parameters.
         kv (float): Proportional gain for maintaining rel vel. 
         kp (float): Proportional gain for maintaining spacing. 
-        S_desired (float): Desired following distance.
+         
     
     Returns:
         tuple: position, speed, and acceleration arrays.
@@ -303,13 +297,13 @@ def simulate_car_following(params):
     for i in range(1, num_steps):
         dt = time_step
         vehicle_state = {
-            'gap': leader_position[i - 1] - position[i - 1],
-            'deltav': leader_speed[i - 1] - speed[i - 1],
+            'gap':  position[i - 1] - leader_position[i - 1],
+            'deltav': speed[i - 1] - leader_speed[i - 1],
             'speed': speed[i - 1]
         }
 
         # Compute acceleration using the constant spacing policy
-        acceleration = acceleration_calculator(i, time[i], vehicle_state,accl_min, accl_max, kv, kp, S_desired)
+        acceleration = acceleration_calculator(i, time[i], vehicle_state,accl_min, accl_max, kv, kp)
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
@@ -339,7 +333,7 @@ def fitness(params):
     mae = mae_position + mae_speed
     
     mape_position = np.mean(np.abs(diff_position / np.array(target_position))) * 100
-    mape_speed = np.mean(np.abs(diff_speed / np.array(target_speed))) * 100
+    mape_speed = np.mean(np.abs(diff_speed / (np.array(target_speed) + 1e-8))) * 100
     mape = (mape_position + mape_speed) / 2
     
     nrmse_position = rmse_position / (np.max(target_position) - np.min(target_position))
@@ -402,6 +396,21 @@ def mutate(child):
     return child
 
 
+# def mutate(child):
+#     for i in range(len(child)):
+#         if random.random() < mutation_rate:
+#             mutation_value = random.uniform(-delta, delta)  
+#             child[i] += mutation_value  
+
+#             # Ensure kv and kp remain non-negative
+#             if i == 0:  # `kv`
+#                 child[i] = max(child[i], kmin)  
+#             elif i == 1:  # `kp`
+#                 child[i] = max(child[i], kmin)  
+
+#     return child
+
+
 
 
 def plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir):
@@ -433,7 +442,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['kv','kp','S_desired']
+    param_names = ['kv','kp']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -514,7 +523,7 @@ for df_key, df_path in datasets.items():
 
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index','kv', 'kp','S_desired', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index','kv', 'kp', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
