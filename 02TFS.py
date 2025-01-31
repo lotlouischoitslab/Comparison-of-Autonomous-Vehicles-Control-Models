@@ -79,6 +79,18 @@ population_size = 40
 num_generations = 80
 mutation_rate = 0.2 
 delta = 0.005
+
+
+rho_min = 0.01 
+rho_max = 0.3 
+
+lamb_min = 0.1 
+lamb_max = 0.4 
+ 
+
+accl_min = -2
+accl_max = 2
+
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -162,7 +174,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var, accl_min, accl_max):
+def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_min, accl_max, desired_position):
     """
     Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
     
@@ -178,12 +190,12 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var, accl_m
         float: Computed acceleration.
     """
     # Extract relevant parameters
-    delta_i = vehicle_dict['delta_i']  # Spacing error
-    delta_i_dot = vehicle_dict['delta_i_dot']  # Relative velocity
-    v_i = vehicle_dict['speed']  # Current speed of the vehicle
+    gap_error = vehicle_dict['gap'] + desired_position
+    speed_error = vehicle_dict['deltav']
+    vi = vehicle_dict['speed']
 
     # Greenshield's-based relation for acceleration calculation
-    accl = rho_max * (v_f - v_i) * (1 - v_i / v_f) * (delta_i_dot + lambda_var * delta_i) 
+    accl = -rho_max * (vf - vi) * (1 - vi / vf) * (speed_error + lambda_var * gap_error) 
     accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
@@ -191,8 +203,7 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var, accl_m
 
 def simulate_car_following(params): 
     rho, lamb = params 
-    accl_min = -2
-    accl_max = 2
+
 
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -213,14 +224,13 @@ def simulate_car_following(params):
         # Compute desired spacing dynamically for CTH
         desired_position = 1/(rho * (1 - vh/vf))
 
-        vehicle_dict = {
-            'delta_i': (leader_position[i-1] - position[i-1]) - desired_position,  # Spacing error
-            'delta_i_dot': leader_speed[i-1] - speed[i-1],  # Relative velocity
-            'speed': speed[i-1], 
-            'vehID': follower_id
+        vehicle_dict = { 
+            'gap':  position[i - 1] - leader_position[i - 1],
+            'deltav': speed[i - 1] - leader_speed[i - 1],
+            'speed': speed[i - 1]
         }
         
-        acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho, vf, lamb, accl_min, accl_max) 
+        acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho, vf, lamb, accl_min, accl_max,desired_position) 
 
 
         acl[i] = acceleration
@@ -310,8 +320,8 @@ def mutate(child, param_ranges):
 
 
 def genetic_algorithm():
-    rho_range = (0.01, 0.3)
-    lamb_range = (0.1, 0.4)
+    rho_range = (rho_min, rho_max)
+    lamb_range = (lamb_min, lamb_max)
     param_ranges = [rho_range,lamb_range]
 
     # Population with random lambda parameters
