@@ -90,27 +90,23 @@ print(I294l2_A)
 
 
 population_size = 40
-num_generations = 80 
+num_generations = 60 
 mutation_rate = 0.1
-delta =  0.1   #simulation parameters
+delta =  0.01   #simulation parameters
 
 
 th_min = 0.5 
-th_max = 3.0 
+th_max = 2.0 
 
-dmin_min = 2 
+dmin_min = 4
 dmin_max = 10 
 
-lamb_min = 0.15 
-lamb_max = 5 
+lamb_min = 0.5
+lamb_max = 2.0
+  
 
-h_min = 0.5 
-h_max = 5.0
-
-
-accl_min = -1
-accl_max = 1
-
+accl_min = -4
+accl_max = 3
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -196,12 +192,20 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max, S_desired):
     # Extract relevant parameters
+    v_desired = 32
     gap_error = vehicle_dict['gap'] + S_desired
     speed_error = vehicle_dict['deltav']
 
     # Compute acceleration
-    accl = -(1 / time_headway) * (speed_error + lambda_param * gap_error)
+    accl_cf = -(1 / time_headway) * (speed_error + lambda_param * gap_error)
+    
+    # Compute Free-Flow Acceleration (Tends to move towards desired speed)
+    accl_ff = accl_max * (1 - (vehicle_dict['speed'] / v_desired))
+
+    # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
+    accl = np.minimum(accl_cf, accl_ff) 
     accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
+  
 
     return accl
 
@@ -329,11 +333,10 @@ def genetic_algorithm():
 
     th_range = (th_min, th_max)
     dmin_range = (dmin_min, dmin_max)
-    lamb_range = (lamb_min, lamb_max) 
-    h_range = (h_min, h_max)     
+    lamb_range = (lamb_min, lamb_max)  
     
 
-    param_ranges = [th_range, dmin_range, lamb_range, h_range]
+    param_ranges = [th_range, dmin_range, lamb_range]
 
     # Population with random lambda parameters
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -403,7 +406,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['th','dmin', 'lamb', 'h']
+    param_names = ['th','dmin', 'lamb']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -477,7 +480,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys()) 
-        columns = ['Follower_ID', 'Run_Index', 'th','dmin', 'lamb', 'h', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'th','dmin', 'lamb', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

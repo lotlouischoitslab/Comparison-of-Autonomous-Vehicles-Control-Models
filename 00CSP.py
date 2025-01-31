@@ -75,6 +75,7 @@ for data_key, data_path in datasets.items():
 
 
 
+
 print(I395_A)
 print(I9094_A)
 print(I294l1_A)
@@ -84,17 +85,14 @@ print(I294l2_A)
 
 # Simulation Parameters
 population_size = 40
-num_generations = 80 
-mutation_rate = 0.2
-delta =  0.005
-accl_min = -1 
-accl_max = 1 
-most_leading_leader_id = None
-kmin = 0.01
-kmax = 0.9
-
+num_generations = 60
+mutation_rate = 0.1
+delta =  0.01
+accl_min = -4
+accl_max = 3
 S_desired_min = 3 
-S_desired_max = 9
+S_desired_max = 10 
+most_leading_leader_id = None 
 
 
 def find_leader_data(df, follower_id, run_index):
@@ -188,8 +186,8 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 def genetic_algorithm(): 
     # Add kv and kp parameter ranges
-    kv_range = (kmin, kmax)  # Increased damping
-    kp_range = (kmin, kmax)  # Reduced overreaction 
+    kv_range = (2, 5)  # Increased damping
+    kp_range = (0.2, 2)  # Reduced overreaction 
     S_desired_range = (S_desired_min, S_desired_max)
 
     # Define parameter ranges for each parameter 
@@ -236,7 +234,7 @@ def genetic_algorithm():
 
 
 def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired): 
-    v_desired = 36 
+    v_desired = 32
     """
     Implements a constant spacing policy using a PD controller and integrates free-flow acceleration.
 
