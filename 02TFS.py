@@ -68,25 +68,17 @@ for data_key, data_path in datasets.items():
             I294l2_A.append([id_val, run_index_val])
 
 
-# IDs for different types of Vehicles extracted before
-# I395 
-# I395_A = [[694, 1], [1416, 1], [1779, 1], [2342, 1]]
 
-# # I90/94 
-# I9094_A = [[5366, 1], [195, 2], [286, 3]] 
 
-# # I294 L1 Moving
-# I294l1_A = [[8, 1], [9, 1], [12, 1], [33, 3], [40, 3], [41, 3], [3, 7], [11, 7], [17, 7], [51, 8], [62, 8], [65, 8], [24, 9], [28, 9], [30, 9], [19, 11], [22, 11], [35, 11], [18, 19], [25, 19], [48, 20], [50, 20], [54, 20], [13, 21]]
-
-# # I294 L2 Moving
-# I294l2_A = [[462, 5], [107, 23], [291, 28], [90, 29], [118, 30], [231, 31], [181, 33], [218, 35], [46, 36], [72, 38], [211, 41], [229, 42]]
- 
 print(I395_A)
 print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters 
+population_size = 40
+num_generations = 80
+mutation_rate = 0.2 
+delta = 0.005
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -318,9 +310,9 @@ def mutate(child, param_ranges):
 
 
 def genetic_algorithm():
-    rho_range = (0.1, 0.5)
-    lamb_range = (0.02, 10)
-    param_ranges = [lamb_range]
+    rho_range = (0.01, 0.3)
+    lamb_range = (0.1, 0.4)
+    param_ranges = [rho_range,lamb_range]
 
     # Population with random lambda parameters
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -351,7 +343,7 @@ def genetic_algorithm():
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
             child1, child2 = crossover(parent1, parent2)
-            children.extend([mutate(child1), mutate(child2)])
+            children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
         population = parents + children[:population_size - len(parents)]
 
@@ -462,7 +454,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'lamb', 'Error']+ metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'rho','lamb', 'Error']+ metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
