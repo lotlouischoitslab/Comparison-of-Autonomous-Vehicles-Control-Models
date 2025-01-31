@@ -88,11 +88,11 @@ dmin_min = 5
 dmin_max = 12   
 
 
-td_min = 0.7
-td_max = 2.0 
+td_min = 1.1
+td_max = 3.0 
 
-K_min = 0.9
-K_max = 1.5
+K_min = 1.0
+K_max = 3.0
 
 
 lamb_min = 0.01
@@ -100,7 +100,7 @@ lamb_max = 0.1
 
 
 gamma_min = 3.0
-gamma_max = 9.0
+gamma_max = 6.0
 
 
 accl_min = -2
@@ -119,7 +119,7 @@ def find_leader_data(df, follower_id, run_index):
         follower_lane = row['lane_kf']
         run_index = row['run_index']
 
-        #find the leader
+        # find the leader
         leader_data = df[(df['id'] != follower_id) & (df['time'] == time) & (df['lane_kf'] == follower_lane) & (df[pos] > follower_x) & (df['run_index'] == run_index)]
         
         if not leader_data.empty:
@@ -135,6 +135,8 @@ def find_leader_data(df, follower_id, run_index):
             leader_data_dict[leader_id]['time'].append(time)
             leader_data_dict[leader_id]['x_val'].append(leader_x_val)
             leader_data_dict[leader_id]['speed_val'].append(leader_speed_val)
+
+
 
     if leader_data_dict:
         most_leading_leader_id = max(leader_data_dict, key=lambda x: len(leader_data_dict[x]['time']))
@@ -257,7 +259,7 @@ def simulate_car_following(params):
         acl (array): Array of follower vehicle accelerations over time.
     """
     # Unpack parameters 
-    dmin, td, K, lamb, gamma = params  
+    dmin, td, K, lamb, gamma, accl = params  
  
 
     # Time and number of steps
@@ -281,8 +283,8 @@ def simulate_car_following(params):
 
       
 
-        # Calculate stopping distance
-        Dstop = vi**2 / (2 * accl_max)
+        # Calculate stopping distance 
+        Dstop = vi**2 / (2 * accl)
         ddes = dmin + td * vi + K * Dstop
 
         # Ensure leader data is available
@@ -291,7 +293,7 @@ def simulate_car_following(params):
 
         # Dynamically calculate j_i
         if i > 1:
-            ji = min(abs(acl[:i].min()), accl_max)  # Minimum acceleration (max deceleration experienced so far)
+            ji = abs(acl[:i].min())  # Minimum acceleration (max deceleration experienced so far)
         else:
             ji = accl_max  # Assume max deceleration initially
 
@@ -398,7 +400,8 @@ def genetic_algorithm():
     K_range = (K_min, K_max)
     lamb_range = (lamb_min, lamb_max)
     gamma_range = (gamma_min, gamma_max)     
-    param_ranges = [dmin_range, td_range, K_range,lamb_range,gamma_range]
+    accl_range = (-8, 8)
+    param_ranges = [dmin_range, td_range, K_range,lamb_range,gamma_range, accl_range]
 
 
     #population with random parameter values
@@ -466,7 +469,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['dmin','td', 'K', 'lamb', 'gamma']
+    param_names = ['dmin','td', 'K', 'lamb', 'gamma','accl']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -541,7 +544,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'dmin','td', 'K', 'lamb', 'gamma', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'dmin','td', 'K', 'lamb', 'gamma','accl', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
