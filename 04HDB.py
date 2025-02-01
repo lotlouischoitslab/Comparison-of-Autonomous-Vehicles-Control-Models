@@ -83,22 +83,22 @@ accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
 
 A_min = 5 
-A_max = 12 
+A_max = 9
 
-Th_min = 1.0 
-Th_max = 2.0 
+Th_min = 3.0 
+Th_max = 6.0 
 
-Ta_min = 1
-Ta_max = 3 
+Ta_min = 3
+Ta_max = 6
 
-G_min = 0.005 
-G_max = 1.5
+G_min = -8.0 
+G_max = 8.0
 
-tau_min = 0.5
-tau_max = 1.5 
+tau_min = 0.5 
+tau_max = 1.5
 
-lamb_min = 0.01 
-lamb_max = 0.4
+lamb_min = 0.3
+lamb_max = 1.0
 
 
 most_leading_leader_id = None
@@ -185,7 +185,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 
 
-def acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb,desired_position) :
+def acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb) :
     """
     Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
     
@@ -201,13 +201,14 @@ def acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb,desired_position
         float: Computed acceleration.
     """
     # Extract relevant parameters 
-    gap_error = vehicle_dict['gap'] + desired_position
+    gap_error = vehicle_dict['gap']  
     speed_error = vehicle_dict['deltav']
     vi = vehicle_dict['speed']
     temp_accl = vehicle_dict['accl']
  
 
-    accl = (1 - (tau*Th/Ta))*  temp_accl  + ((tau*speed_error)/Ta) + ((tau*lamb*gap_error)/Ta)
+    accl = ((1 - ((tau*Th) /Ta))*temp_accl)  + ((tau*speed_error)/Ta) + ((tau*lamb*gap_error)/Ta)
+    
 
     # # Clamp acceleration to realistic limits
     accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
@@ -231,22 +232,20 @@ def simulate_car_following(params):
 
     for i in range(1, num_steps):
         dt = time_step 
-        vh = speed[i-1] 
-        desired_position = A + Th*vh**2 + G*vh**2 
-
+        vh = speed[i-1]  
+        R = A + Th*vh + G*vh**2 
+        epsilon = R -Th*vh - Ta*acl[i]
 
         vehicle_dict = { 
-            'gap':  position[i - 1] - target_position[i - 1],
-            'deltav': speed[i - 1] - target_speed[i - 1],
+            'gap':  epsilon, 
+            'deltav': target_speed[i - 1] - speed[i - 1],
             'speed': speed[i - 1],
             'accl': acl[i-1]
         }
 
 
         
-        acceleration = acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb,desired_position) 
-
-
+        acceleration = acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb) 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
         position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
