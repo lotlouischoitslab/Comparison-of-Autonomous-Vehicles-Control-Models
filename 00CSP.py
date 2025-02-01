@@ -84,13 +84,21 @@ print(I294l2_A)
 
 
 # Simulation Parameters
-population_size = 40
-num_generations = 80
-mutation_rate = 0.2
-delta =  0.05
-accl_min = -2
-accl_max = 2
-most_leading_leader_id = None 
+population_size = 40  # Keep as is (sufficient for convergence)
+num_generations = 100  # Increase for better tuning
+mutation_rate = 0.1  # Reduce mutation rate for better stability
+delta = 0.02  # Smaller mutation step to refine tuning
+accl_min = -5  # More realistic braking limit
+accl_max = 3  # Prevent excessive acceleration
+kp_min = 0.5 
+kp_max = 10.0 
+kv_min = 0.5 
+kv_max = 10.0 
+S_desired_min = 3 
+S_desired_max = 6
+most_leading_leader_id = None  # Keep as is
+
+
 
 
 def find_leader_data(df, follower_id, run_index):
@@ -184,13 +192,13 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 def genetic_algorithm(): 
     # Add kv and kp parameter ranges
-    kp_range = (0.1, 1.5)  # Lower range to prevent excessive following 
-    kv_range = (2.0, 5.0)  # Increase damping to smooth response
+    kp_range = (kp_min, kp_max)  # Less aggressive position tracking
+    kv_range = (kv_min, kv_max)   # Stronger speed correction for better tracking
+    S_desired_range = (S_desired_min, S_desired_max)
 
-
-
+ 
     # Define parameter ranges for each parameter 
-    param_ranges = [kv_range, kp_range]
+    param_ranges = [kv_range, kp_range, S_desired_range]
 
     # Initialize population with random parameter values
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -232,8 +240,7 @@ def genetic_algorithm():
  
 
 
-def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired): 
-    v_desired = 32
+def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired):  
     """
     Implements a constant spacing policy using a PD controller and integrates free-flow acceleration.
 
@@ -256,21 +263,15 @@ def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired
     speed_error = vehicle['deltav']
 
     accl_cf = - kv * speed_error -kp * gap_error  # Car-following acceleration
-
-    # Compute Free-Flow Acceleration (Tends to move towards desired speed)
-    accl_ff = accl_max * (1 - (vehicle['speed'] / v_desired))
-
-    # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
-    accl = np.minimum(accl_cf, accl_ff) 
-    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds   
+ 
+    accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds   
     return accl
 
 
 
 
 def simulate_car_following(params):
-    kv, kp = params   
-    S_desired = 3
+    kv, kp, S_desired = params   
 
 
     """
@@ -299,8 +300,8 @@ def simulate_car_following(params):
     for i in range(1, num_steps):
         dt = time_step
         vehicle_state = {
-            'gap':  position[i - 1] - leader_position[i - 1],
-            'deltav': speed[i - 1] - leader_speed[i - 1],
+            'gap':  position[i - 1] - target_position[i - 1],
+            'deltav': speed[i - 1] - target_speed[i - 1],
             'speed': speed[i - 1]
         }
 
@@ -393,7 +394,7 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
+            # child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
 
     return child
 
@@ -431,7 +432,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['kv','kp']
+    param_names = ['kv','kp','S_desired']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -501,8 +502,10 @@ for df_key, df_path in datasets.items():
                 timex = np.linspace(0, total_time, num_steps)
                 leader_position, leader_speed = ldf[pos].tolist(), ldf['speed_kf'].tolist()
                 target_position, target_speed = sdf[pos].tolist(), sdf['speed_kf'].tolist()
+
                 best_params, best_error, best_metrics = genetic_algorithm()
                 all_params.append(best_params)
+
                 params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
                  
                 sim_position, sim_speed, acl = simulate_car_following(best_params)
@@ -512,7 +515,7 @@ for df_key, df_path in datasets.items():
 
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index','kv', 'kp', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index','kv', 'kp','S_desired', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

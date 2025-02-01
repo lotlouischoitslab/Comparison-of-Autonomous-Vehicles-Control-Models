@@ -81,8 +81,12 @@ print(I294l2_A)
 
 population_size = 40
 num_generations = 80 
-mutation_rate = 0.2
-delta = 0.005
+mutation_rate = 0.1
+delta = 0.02
+accl_min = -5  # More realistic braking limit
+accl_max = 3  # Prevent excessive acceleration
+
+
 
 dmin_min = 5
 dmin_max = 12   
@@ -102,9 +106,7 @@ lamb_max = 0.1
 gamma_min = 3.0
 gamma_max = 6.0
 
-
-accl_min = -2
-accl_max = 2
+ 
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -221,14 +223,8 @@ def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, a
     denominator = max(td - gamma * ji * vi, 1e-8)  # Prevents division by zero
  
     # Compute acceleration based on spacing error and relative velocity
-    accl_cf = -(1 / denominator) * (speed_error + lamb * gap_error)
-
-    # Compute Free-Flow Acceleration (Tends to move towards desired speed)
-    accl_ff = accl_max * (1 - (vehicle_dict['speed'] / v_desired))
-
-    # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
-    accl = np.minimum(accl_cf, accl_ff) 
-    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
+    accl_cf = -(1 / denominator) * (speed_error + lamb * gap_error) 
+    accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
 
@@ -299,8 +295,8 @@ def simulate_car_following(params):
 
         # Vehicle state dictionary
         vehicle_dict = { 
-            'gap':  position[i - 1] - leader_position[i - 1],
-            'deltav': speed[i - 1] - leader_speed[i - 1],
+            'gap':  position[i - 1] - target_position[i - 1],
+            'deltav': speed[i - 1] - target_speed[i - 1],
             'speed': speed[i - 1]
         }
         

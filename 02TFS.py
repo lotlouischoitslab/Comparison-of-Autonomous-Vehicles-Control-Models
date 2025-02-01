@@ -77,8 +77,10 @@ print(I294l2_A)
 
 population_size = 40
 num_generations = 80
-mutation_rate = 0.2 
-delta = 0.005
+mutation_rate = 0.1 
+delta = 0.02
+accl_min = -5  # More realistic braking limit
+accl_max = 3  # Prevent excessive acceleration
 
 
 rho_min = 0.01 
@@ -86,10 +88,7 @@ rho_max = 0.3
 
 lamb_min = 0.1 
 lamb_max = 0.4 
- 
-
-accl_min = -2
-accl_max = 2
+  
 
 most_leading_leader_id = None
 
@@ -196,14 +195,8 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_mi
     speed_error = vehicle_dict['deltav']
     vi = vehicle_dict['speed']
  
-    accl_cf = -rho_max * (vf - vi) * (1 - vi / vf) * (speed_error + lambda_var * gap_error) 
-
-    # Compute Free-Flow Acceleration (Tends to move towards desired speed)
-    accl_ff = accl_max * (1 - (vehicle_dict['speed'] / v_desired))
-
-    # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
-    accl = np.minimum(accl_cf, accl_ff) 
-    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
+    accl_cf = -rho_max * (vf - vi) * (1 - vi / vf) * (speed_error + lambda_var * gap_error)  
+    accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
 
@@ -320,8 +313,7 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
-
+             
     return child
 
 

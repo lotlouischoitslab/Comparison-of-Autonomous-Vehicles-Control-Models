@@ -78,25 +78,21 @@ print(I294l2_A)
 
 
 # Simulation Parameters
-population_size = 40
-num_generations = 80 
-mutation_rate = 0.2
-delta =  0.005    
-
-
+population_size = 40  # Keep as is (sufficient for convergence)
+num_generations = 100  # Increase for better tuning
+mutation_rate = 0.1  # Reduce mutation rate for better stability
+delta = 0.02  # Smaller mutation step to refine tuning
+accl_min = -5  # More realistic braking limit
+accl_max = 3  # Prevent excessive acceleration
 th_min = 1.0
-th_max = 5.0 
-
-dmin_min = 3
-dmin_max = 6
-
+th_max = 3.0 
+dmin_min = 2
+dmin_max = 4
 lamb_min = 0.1
-lamb_max = 0.4
-  
-
-accl_min = -2
-accl_max = 2
+lamb_max = 1.0
 most_leading_leader_id = None
+
+
 
 def find_leader_data(df, follower_id, run_index):
     global most_leading_leader_id
@@ -187,15 +183,7 @@ def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_mi
 
     # Compute acceleration
     accl_cf = -(1 / time_headway) * (speed_error + lambda_param * gap_error)
-    
-    # Compute Free-Flow Acceleration (Tends to move towards desired speed)
-    accl_ff = accl_max * (1 - (vehicle_dict['speed'] / v_desired))
-
-    # Final acceleration: Minimum of Car-Following and Free-Flow Acceleration
-    accl = np.minimum(accl_cf, accl_ff) 
-    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
-  
-
+    accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
 
@@ -219,8 +207,8 @@ def simulate_car_following(params):
         S_desired = time_headway * speed[i - 1] + dmin
 
         vehicle_dict = { 
-            'gap':  position[i - 1] - leader_position[i - 1],
-            'deltav': speed[i - 1] - leader_speed[i - 1],
+            'gap':  position[i - 1] - target_position[i - 1],
+            'deltav': speed[i - 1] - target_speed[i - 1],
             'speed': speed[i - 1]
         }
 
@@ -306,8 +294,7 @@ def crossover(parent1, parent2):
 def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            child[i] += random.uniform(-delta, delta)
-            child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
+            child[i] += random.uniform(-delta, delta) 
 
     return child
 

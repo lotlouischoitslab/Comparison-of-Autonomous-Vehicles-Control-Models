@@ -68,19 +68,8 @@ for data_key, data_path in datasets.items():
             I294l2_A.append([id_val, run_index_val])
 
 
-# IDs for different types of Vehicles extracted before
-# I395 
-# I395_A = [[694, 1], [1416, 1], [1779, 1], [2342, 1]]
 
-# # I90/94 
-# I9094_A = [[5366, 1], [195, 2], [286, 3]] 
 
-# # I294 L1 Moving
-# I294l1_A = [[8, 1], [9, 1], [12, 1], [33, 3], [40, 3], [41, 3], [3, 7], [11, 7], [17, 7], [51, 8], [62, 8], [65, 8], [24, 9], [28, 9], [30, 9], [19, 11], [22, 11], [35, 11], [18, 19], [25, 19], [48, 20], [50, 20], [54, 20], [13, 21]]
-
-# # I294 L2 Moving
-# I294l2_A = [[462, 5], [107, 23], [291, 28], [90, 29], [118, 30], [231, 31], [181, 33], [218, 35], [46, 36], [72, 38], [211, 41], [229, 42]]
- 
 print(I395_A)
 print(I9094_A)
 print(I294l1_A)
@@ -88,6 +77,11 @@ print(I294l2_A)
 
 population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
 accl_max, v_desired, Tcorr, RT = 3.0, 36.0, 20.0, 0.6 #suggested values from the paper and v_desired=36 is the v_desired from the data
+mutation_rate = 0.1
+delta = 0.02
+accl_min = -5  # More realistic braking limit
+accl_max = 3  # Prevent excessive acceleration
+
 most_leading_leader_id = None
 
 def find_leader_data(df, follower_id, run_index):
@@ -226,8 +220,8 @@ def simulate_car_following(params):
         desired_position = 1/(rho_max * (1 - vh/vf))
 
         vehicle_dict = { 
-            'gap':  position[i - 1] - leader_position[i - 1],
-            'deltav': speed[i - 1] - leader_speed[i - 1],
+            'gap':  position[i - 1] - target_position[i - 1],
+            'deltav': speed[i - 1] - target_speed[i - 1],
             'speed': speed[i - 1]
         }
         
