@@ -78,7 +78,7 @@ print(I294l2_A)
 population_size = 40
 num_generations = 80
 mutation_rate = 0.1 
-delta = 0.02
+delta = 0.1
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
 
@@ -187,8 +187,7 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_mi
 
     Returns:
         float: Computed acceleration.
-    """
-    v_desired = 32
+    """ 
     
     # Extract relevant parameters
     gap_error = vehicle_dict['gap'] + desired_position

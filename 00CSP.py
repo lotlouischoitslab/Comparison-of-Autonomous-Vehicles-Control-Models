@@ -87,7 +87,7 @@ print(I294l2_A)
 population_size = 40  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
-delta = 0.02  # Smaller mutation step to refine tuning
+delta = 0.1  # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
 kp_min = 0.5 

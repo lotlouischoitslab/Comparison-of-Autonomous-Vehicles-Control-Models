@@ -81,13 +81,13 @@ print(I294l2_A)
 population_size = 40  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
-delta = 0.02  # Smaller mutation step to refine tuning
+delta = 0.1  # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
-th_min = 1.0
-th_max = 3.0 
+th_min = 2.0
+th_max = 6.0 
 dmin_min = 2
-dmin_max = 4
+dmin_max = 5
 lamb_min = 0.1
 lamb_max = 1.0
 most_leading_leader_id = None
@@ -176,8 +176,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 
 def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max, S_desired):
-    # Extract relevant parameters
-    v_desired = 32
+    # Extract relevant parameters 
     gap_error = vehicle_dict['gap'] + S_desired
     speed_error = vehicle_dict['deltav']
 
