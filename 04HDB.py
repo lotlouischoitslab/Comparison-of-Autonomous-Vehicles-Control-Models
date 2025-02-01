@@ -75,12 +75,31 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size, num_generations, mutation_rate = 40, 80, 0.1  #simulation parameters
-accl_max, v_desired, Tcorr, RT = 3.0, 36.0, 20.0, 0.6 #suggested values from the paper and v_desired=36 is the v_desired from the data
+population_size = 40
+num_generations = 80 
 mutation_rate = 0.1
-delta = 0.02
+delta = 0.1
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
+
+A_min = 5 
+A_max = 12 
+
+Th_min = 1.0 
+Th_max = 2.0 
+
+Ta_min = 1
+Ta_max = 3 
+
+G_min = 0.005 
+G_max = 1.5
+
+tau_min = 0.5
+tau_max = 1.5 
+
+lamb_min = 0.01 
+lamb_max = 0.4
+
 
 most_leading_leader_id = None
 
@@ -165,7 +184,8 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var):
+
+def acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb,desired_position) :
     """
     Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
     
@@ -180,23 +200,23 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, v_f, lambda_var):
     Returns:
         float: Computed acceleration.
     """
-    # Extract relevant parameters
-    delta_i = vehicle_dict['delta_i']  # Spacing error
-    delta_i_dot = vehicle_dict['delta_i_dot']  # Relative velocity
-    v_i = vehicle_dict['speed']  # Current speed of the vehicle
+    # Extract relevant parameters 
+    gap_error = vehicle_dict['gap'] + desired_position
+    speed_error = vehicle_dict['deltav']
+    vi = vehicle_dict['speed']
+    temp_accl = vehicle_dict['accl']
+ 
 
-    # Greenshield's-based relation for acceleration calculation
-    accl = -rho_max * (v_f - v_i) * (1 - v_i / v_f) * (delta_i_dot + lambda_var * delta_i)
+    accl = (1 - (tau*Th/Ta))*  temp_accl  + ((tau*speed_error)/Ta) + ((tau*lamb*gap_error)/Ta)
 
     # # Clamp acceleration to realistic limits
-    accl = max(-3, min(3, accl))  # For example, limits are [-3, 3] m/s^2
+    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
 
 
 def simulate_car_following(params):
-    global Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm
-    Tmax, Alpha, Beta, Wc, Gamma1, Gamma2, Wm = params
+    A, Th, Ta, G, tau, lamb = params
     
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -210,22 +230,21 @@ def simulate_car_following(params):
     acl[0] = 0
 
     for i in range(1, num_steps):
-        dt = time_step
-        rho_max = 0.125 # jam density 
+        dt = time_step 
         vh = speed[i-1] 
-        vf = 32 # free-flow speed in m/s 
-        lambda_var = 0.5
-        
-        # Compute desired spacing dynamically for CTH
-        desired_position = 1/(rho_max * (1 - vh/vf))
+        desired_position = A + Th*vh**2 + G*vh**2 
+
 
         vehicle_dict = { 
             'gap':  position[i - 1] - target_position[i - 1],
             'deltav': speed[i - 1] - target_speed[i - 1],
-            'speed': speed[i - 1]
+            'speed': speed[i - 1],
+            'accl': acl[i-1]
         }
+
+
         
-        acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho_max, vf, lambda_var) 
+        acceleration = acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb,desired_position) 
 
 
         acl[i] = acceleration
@@ -256,7 +275,7 @@ def fitness(params):
     mae = mae_position + mae_speed
     
     mape_position = np.mean(np.abs(diff_position / np.array(target_position))) * 100
-    mape_speed = np.mean(np.abs(diff_speed / np.array(target_speed))) * 100
+    mape_speed = np.mean(np.abs(diff_speed / (np.array(target_speed) + 1e-8))) * 100
     mape = (mape_position + mape_speed) / 2
     
     nrmse_position = rmse_position / (np.max(target_position) - np.min(target_position))
@@ -302,24 +321,30 @@ def crossover(parent1, parent2):
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
     return child1, child2
 
+
+
 def mutate(child):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            child[i] += random.uniform(-0.1, 0.1)
+            child[i] += random.uniform(-delta, delta)
     return child
 
+    
+
 def genetic_algorithm():
-    #define parameter ranges for PT model
-    Tmax_range = (2, 8.0)
-    Alpha_range = (0, 0.6)
-    Beta_range = (2, 8)
-    Wc_range = (60000, 130000)
-    Gamma1_range = (0.3, 2.0)
-    Gamma2_range = (0.3, 2.0)
-    Wm_range = (2, 8.0)
+    A_range = (A_min, A_max)
+    Th_range = (Th_min, Th_max)
+    Ta_range = (Ta_min, Ta_max)
+    G_range = (G_min, G_max)
+    tau_range = (tau_min, tau_max)  
+    lamb_range = (lamb_min, lamb_max)
+
+
+    param_ranges = [A_range, Th_range, Ta_range,G_range, tau_range, lamb_range]
+
 
     #population with random parameter values
-    population = [[random.uniform(*range_) for range_ in (Tmax_range, Alpha_range, Beta_range, Wc_range, Gamma1_range, Gamma2_range, Wm_range)]
+    population = [[random.uniform(*range_) for range_ in (param_ranges)]
                   for _ in range(population_size)]
     
     best_error = float('inf')
@@ -352,6 +377,8 @@ def genetic_algorithm():
     #return the best individual, best error, and best error metrics after all generations
     return best_individual, best_error, best_metrics
 
+
+
 def plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir):
     plt.figure(figsize=(10, 12))
     plt.subplot(2, 1, 1)
@@ -381,7 +408,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm']
+    param_names = ['A','Th','Ta','G','tau','lamb']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -456,7 +483,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'Tmax', 'Alpha', 'Beta', 'Wc', 'Gamma1', 'Gamma2', 'Wm', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'A','Th','Ta','G','tau','lamb', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

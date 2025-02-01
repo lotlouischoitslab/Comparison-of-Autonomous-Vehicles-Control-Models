@@ -82,7 +82,7 @@ print(I294l2_A)
 population_size = 40
 num_generations = 80 
 mutation_rate = 0.1
-delta = 0.02
+delta = 0.1
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
 
@@ -91,20 +91,19 @@ accl_max = 3  # Prevent excessive acceleration
 dmin_min = 5
 dmin_max = 12   
 
-
-td_min = 1.1
-td_max = 3.0 
-
-K_min = 1.0
-K_max = 3.0
+td_min = 1.1  # Reduce reaction time
+td_max = 2.0
 
 
-lamb_min = 0.01
-lamb_max = 0.1
+lamb_min = 0.001  # Reduce control gain
+lamb_max = 0.05
 
+K_min = 1.0   # Reduce safety coefficient
+K_max = 2.0
 
-gamma_min = 3.0
-gamma_max = 6.0
+gamma_min = 2.0  # Reduce braking dynamics coefficient
+gamma_max = 4.0
+
 
  
 most_leading_leader_id = None
@@ -211,8 +210,7 @@ def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, a
 
     Returns:
         float: Computed acceleration.
-    """
-    v_desired = 32
+    """ 
 
     # Extract relevant parameters
     gap_error = vehicle_dict['gap'] + Dstop
@@ -220,7 +218,7 @@ def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, a
     vi = vehicle_dict['speed']
 
     # Compute denominator for acceleration calculation
-    denominator = max(td - gamma * ji * vi, 1e-8)  # Prevents division by zero
+    denominator = max(td - gamma * ji * vi, 0.1)  # Prevents division by zero
  
     # Compute acceleration based on spacing error and relative velocity
     accl_cf = -(1 / denominator) * (speed_error + lamb * gap_error) 
@@ -255,7 +253,7 @@ def simulate_car_following(params):
         acl (array): Array of follower vehicle accelerations over time.
     """
     # Unpack parameters 
-    dmin, td, K, lamb, gamma, accl = params  
+    dmin, td, K, lamb, gamma = params  
  
 
     # Time and number of steps
@@ -276,11 +274,10 @@ def simulate_car_following(params):
     for i in range(1, num_steps):
         dt = time_step
         vi = speed[i - 1] 
-
-      
-
+ 
         # Calculate stopping distance 
-        Dstop = vi**2 / (2 * accl)
+        max_accl = accl_max
+        Dstop = vi**2 / (2 * max_accl)
         ddes = dmin + td * vi + K * Dstop
 
         # Ensure leader data is available
@@ -289,9 +286,10 @@ def simulate_car_following(params):
 
         # Dynamically calculate j_i
         if i > 1:
-            ji = abs(acl[:i].min())  # Minimum acceleration (max deceleration experienced so far)
+            ji = -acl[:i][acl[:i] < 0].mean() if (acl[:i] < 0).any() else max_accl
+
         else:
-            ji = accl_max  # Assume max deceleration initially
+            ji = max_accl  # Assume max deceleration initially
 
         # Vehicle state dictionary
         vehicle_dict = { 
@@ -385,8 +383,7 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
-
+            
     return child
 
 
@@ -395,9 +392,8 @@ def genetic_algorithm():
     td_range = (td_min, td_max)
     K_range = (K_min, K_max)
     lamb_range = (lamb_min, lamb_max)
-    gamma_range = (gamma_min, gamma_max)     
-    accl_range = (-8, 8)
-    param_ranges = [dmin_range, td_range, K_range,lamb_range,gamma_range, accl_range]
+    gamma_range = (gamma_min, gamma_max)      
+    param_ranges = [dmin_range, td_range, K_range,lamb_range,gamma_range]
 
 
     #population with random parameter values
@@ -465,7 +461,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['dmin','td', 'K', 'lamb', 'gamma','accl']
+    param_names = ['dmin','td', 'K', 'lamb', 'gamma']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -540,7 +536,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'dmin','td', 'K', 'lamb', 'gamma','accl', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'dmin','td', 'K', 'lamb', 'gamma', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
