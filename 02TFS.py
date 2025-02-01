@@ -224,8 +224,8 @@ def simulate_car_following(params):
         desired_position = 1/(rho * (1 - vh/vf))
 
         vehicle_dict = { 
-            'gap':  position[i - 1] - leader_position[i - 1],
-            'deltav': speed[i - 1] - leader_speed[i - 1],
+            'gap':  position[i - 1] - target_position[i - 1],
+            'deltav': speed[i - 1] - target_speed[i - 1],
             'speed': speed[i - 1]
         }
         
