@@ -87,16 +87,17 @@ print(I294l2_A)
 population_size = 40  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
-delta = 0.5  # Smaller mutation step to refine tuning
+delta = 0.1  # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
-kp_min = 4.0 
-kp_max = 6.0  
-kv_min = 1.0 
+kp_min = 0.5
+kp_max = 6 
+
+kv_min = 2
 kv_max = 3
-S_desired_min = 10 
-S_desired_max = 20
-most_leading_leader_id = None  # Keep as is
+S_desired_min = 5
+S_desired_max = 10
+most_leading_leader_id = None   
 
 
 
@@ -394,7 +395,9 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            # child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
+            #child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
+            if child[i] < 0:
+                child[i] = 1e-5
 
     return child
 

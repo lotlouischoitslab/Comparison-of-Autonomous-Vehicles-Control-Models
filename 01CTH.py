@@ -81,15 +81,15 @@ print(I294l2_A)
 population_size = 40  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
-delta = 0.1  # Smaller mutation step to refine tuning
+delta = 0.05  # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
 th_min = 2.0
 th_max = 6.0 
-dmin_min = 2
-dmin_max = 5
+dmin_min = 3
+dmin_max = 8
 lamb_min = 0.1
-lamb_max = 1.0
+lamb_max = 0.9
 most_leading_leader_id = None
 
 
@@ -464,7 +464,7 @@ for df_key, df_path in datasets.items():
 
     if df_key == "df9094":
         df = format_speed(df)
-        
+
     for group in groups[df_key]:
         # Define the current group
         outname = str("PT_")+str(group)
