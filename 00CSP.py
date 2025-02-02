@@ -83,22 +83,23 @@ print(I294l2_A)
 
 
 
-# Simulation Parameters
+####################### SIMULATION PARAMETERS ##########################################################
 population_size = 40  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
 delta = 0.1  # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
-accl_max = 3  # Prevent excessive acceleration
-kp_min = 0.5
-kp_max = 6 
+accl_max = 3 # Prevent excessive acceleration
+kp_min = 0.5 # Reduce from 3 to allow smoother position control
+kp_max = 2.0  # Upper limit to prevent excessive reaction
 
-kv_min = 2
-kv_max = 3
-S_desired_min = 5
-S_desired_max = 10
+kv_min = 1.0  # Reduce speed correction term for smoother response
+kv_max = 2.0  # Keep max value lower to avoid overcompensation
+
+S_desired_min = 6
+S_desired_max = 9
 most_leading_leader_id = None   
-
+#################################################################################################################
 
 
 
@@ -191,53 +192,6 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
   
 
-def genetic_algorithm(): 
-    # Add kv and kp parameter ranges
-    kp_range = (kp_min, kp_max)  # Less aggressive position tracking
-    kv_range = (kv_min, kv_max)   # Stronger speed correction for better tracking
-    S_desired_range = (S_desired_min, S_desired_max)
-
- 
-    # Define parameter ranges for each parameter 
-    param_ranges = [kv_range, kp_range, S_desired_range]
-
-    # Initialize population with random parameter values
-    population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
-    
-    best_error = float('inf')
-    best_individual = None
-    best_metrics = None
-    
-    for generation in range(num_generations):
-        # Evaluate fitness (simulate car-following behavior)
-        fitness_and_errors = [fitness(individual) for individual in population]
-        population_sorted = sorted(zip(population, fitness_and_errors), key=lambda x: x[1][0], reverse=True)
-        population = [ind for ind, _ in population_sorted]
-        
-        # Update best individual if a better one is found
-        current_best_error = population_sorted[0][1][1]['Total Difference']
-        if current_best_error < best_error:
-            best_error = current_best_error
-            best_individual = population_sorted[0][0]
-            best_metrics = population_sorted[0][1][1]
-
-        # Parent selection (top half of sorted population)
-        parents = population[:len(population) // 2]
-
-        # Crossover and mutation
-        children = []
-        while len(children) < (population_size - len(parents)):
-            parent1, parent2 = random.sample(parents, 2)
-            child1, child2 = crossover(parent1, parent2)
-            children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
-        
-        # Ensure population size remains constant
-        population = parents + children[:population_size - len(parents)]
-
-    # Return best parameters and performance metrics
-    return best_individual, best_error, best_metrics
-
-
  
 
 
@@ -263,10 +217,10 @@ def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired
     gap_error = vehicle['gap'] + S_desired
     speed_error = vehicle['deltav']
 
-    accl_cf = - kv * speed_error -kp * gap_error  # Car-following acceleration
+    accl_cf = - (kv * speed_error + kp * gap_error)  # Car-following acceleration
  
     accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds   
-    return accl
+    return accl_cf
 
 
 
@@ -301,8 +255,8 @@ def simulate_car_following(params):
     for i in range(1, num_steps):
         dt = time_step
         vehicle_state = {
-            'gap':  position[i - 1] - target_position[i - 1],
-            'deltav': speed[i - 1] - target_speed[i - 1],
+            'gap':  position[i-1] - target_position[i-1],
+            'deltav': speed[i - 1] - target_speed[i-1],
             'speed': speed[i - 1]
         }
 
@@ -391,17 +345,62 @@ def crossover(parent1, parent2):
 
  
 
+
 def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            #child[i] = max(param_ranges[i][0], min(child[i], param_ranges[i][1]))  
-            if child[i] < 0:
-                child[i] = 1e-5
-
+             
     return child
 
+
  
+
+def genetic_algorithm(): 
+    # Add kv and kp parameter ranges
+    kp_range = (kp_min, kp_max)  # Less aggressive position tracking
+    kv_range = (kv_min, kv_max)   # Stronger speed correction for better tracking
+    S_desired_range = (S_desired_min, S_desired_max)
+
+ 
+    # Define parameter ranges for each parameter 
+    param_ranges = [kv_range, kp_range, S_desired_range]
+
+    # Initialize population with random parameter values
+    population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
+    
+    best_error = float('inf')
+    best_individual = None
+    best_metrics = None
+    
+    for generation in range(num_generations):
+        # Evaluate fitness (simulate car-following behavior)
+        fitness_and_errors = [fitness(individual) for individual in population]
+        population_sorted = sorted(zip(population, fitness_and_errors), key=lambda x: x[1][0], reverse=True)
+        population = [ind for ind, _ in population_sorted]
+        
+        # Update best individual if a better one is found
+        current_best_error = population_sorted[0][1][1]['Total Difference']
+
+        # Update best individual
+        if current_best_error < best_error:
+            best_error = current_best_error
+            best_individual = population_sorted[0][0]
+            best_metrics = population_sorted[0][1][1]
+
+        # Parent selection
+        parents = population[:len(population) // 2]
+        children = []
+
+        while len(children) < (population_size - len(parents)):
+            parent1, parent2 = random.sample(parents, 2)
+            child1, child2 = crossover(parent1, parent2)
+            children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
+
+        population = parents + children[:population_size - len(parents)]
+
+    # Return best parameters and performance metrics
+    return best_individual, best_error, best_metrics
 
 
 

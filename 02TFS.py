@@ -84,7 +84,7 @@ accl_max = 3  # Prevent excessive acceleration
 
 
 rho_min = 0.01 
-rho_max = 0.3 
+rho_max = 0.15 
 
 lamb_min = 0.1 
 lamb_max = 0.4 
@@ -300,12 +300,22 @@ def fitness(params):
     
     return fitness_value, error_metrics  # Return fitness and all error metrics
 
-def crossover(parent1, parent2):
+# def crossover(parent1, parent2):
+#     crossover_point = random.randint(0, len(parent1) - 1)
+#     child1 = parent1[:crossover_point] + parent2[crossover_point:]
+#     child2 = parent2[:crossover_point] + parent1[crossover_point:]
+#     return child1, child2
+
+def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
-    return child1, child2
 
+    # Clip values to be within valid ranges
+    child1 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child1)]
+    child2 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child2)]
+    
+    return child1, child2
 
 
 def mutate(child, param_ranges):
@@ -350,7 +360,7 @@ def genetic_algorithm():
 
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
-            child1, child2 = crossover(parent1, parent2)
+            child1, child2 = crossover(parent1, parent2, param_ranges)
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
         population = parents + children[:population_size - len(parents)]

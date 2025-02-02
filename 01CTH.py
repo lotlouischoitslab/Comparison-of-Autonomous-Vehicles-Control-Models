@@ -77,21 +77,22 @@ print(I294l1_A)
 print(I294l2_A)
 
 
-# Simulation Parameters
+####################### SIMULATION PARAMETERS ##########################################################
 population_size = 40  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
-delta = 0.05  # Smaller mutation step to refine tuning
+delta = 0.1  # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
-th_min = 2.0
+th_min = 2.5
 th_max = 6.0 
-dmin_min = 3
-dmin_max = 8
-lamb_min = 0.1
-lamb_max = 0.9
+dmin_min = 4
+dmin_max = 6
+lamb_min = 0.0001
+lamb_max = 0.5
 most_leading_leader_id = None
-
+#################################################################################################################
+ 
 
 
 def find_leader_data(df, follower_id, run_index):
@@ -179,11 +180,13 @@ def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_mi
     # Extract relevant parameters 
     gap_error = vehicle_dict['gap'] + S_desired
     speed_error = vehicle_dict['deltav']
+    h = time_headway
 
     # Compute acceleration
-    accl_cf = -(1 / time_headway) * (speed_error + lambda_param * gap_error)
+    accl_cf = -(1 / h) * (speed_error + lambda_param * gap_error)
     accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
     return accl
+
 
 
 def simulate_car_following(params):
@@ -208,7 +211,8 @@ def simulate_car_following(params):
         vehicle_dict = { 
             'gap':  position[i - 1] - target_position[i - 1],
             'deltav': speed[i - 1] - target_speed[i - 1],
-            'speed': speed[i - 1]
+            'speed': speed[i - 1],
+            'time': time[i-1]
         }
 
         acceleration = acceleration_calculator(i, vehicle_dict, time_headway, lamb, accl_min, accl_max, S_desired)
@@ -282,10 +286,21 @@ def fitness(params):
 
 
 
-def crossover(parent1, parent2):
+# def crossover(parent1, parent2):
+#     crossover_point = random.randint(0, len(parent1) - 1)
+#     child1 = parent1[:crossover_point] + parent2[crossover_point:]
+#     child2 = parent2[:crossover_point] + parent1[crossover_point:]
+#     return child1, child2
+
+def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
+
+    # Clip values to be within valid ranges
+    child1 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child1)]
+    child2 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child2)]
+    
     return child1, child2
 
 
@@ -294,7 +309,7 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta) 
-
+         
     return child
 
 
@@ -336,7 +351,7 @@ def genetic_algorithm():
 
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
-            child1, child2 = crossover(parent1, parent2)
+            child1, child2 = crossover(parent1, parent2, param_ranges)
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
         population = parents + children[:population_size - len(parents)]
