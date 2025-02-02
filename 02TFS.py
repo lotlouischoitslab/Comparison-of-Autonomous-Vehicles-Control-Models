@@ -417,6 +417,45 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
     plt.savefig(plot_filename)
 
 
+
+def format_speed(df):
+    """
+    Computes heading and decomposes speed into speed_x and speed_y for each vehicle ID.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing 'id', 'time', 'xloc', 'yloc', and 'speed' columns.
+
+    Returns:
+        pd.DataFrame: Updated DataFrame with 'heading', 'speed_x', and 'speed_y' columns.
+    """
+    
+    vehicle_ids = df['id'].unique()
+    df = df.sort_values(by=['id', 'time']).copy() 
+
+    for temp_id in vehicle_ids:
+        # Filter data for the specific vehicle ID
+        temp_data = df[df['id'] == temp_id].copy()
+        
+        # Compute differences in x and y
+        temp_data['dx'] = temp_data['xloc_kf'].diff()
+        temp_data['dy'] = temp_data['yloc_kf'].diff()
+        
+        # Compute heading (in radians)
+        temp_data['heading'] = np.arctan2(temp_data['dy'], temp_data['dx'])
+        
+        # Compute speed_x and speed_y
+        temp_data['speed_x'] = temp_data['speed_kf'] * np.cos(temp_data['heading'])
+        temp_data['speed_y'] = temp_data['speed_kf'] * np.sin(temp_data['heading'])
+
+        # Fill NaN values for first row
+        temp_data.fillna(0, inplace=True)
+
+        # Assign back to the original DataFrame
+        df.loc[df['id'] == temp_id, ['dx', 'dy', 'heading', 'speed_x', 'speed_y']] = temp_data[['dx', 'dy', 'heading', 'speed_x', 'speed_y']]
+    
+    df['speed_kf'] = df['speed_x']
+    return df
+
  
 
 
@@ -432,6 +471,11 @@ for df_key, df_path in datasets.items():
         pos = "yloc_kf"
     else:
         pos = "xloc_kf"
+
+    if df_key == "df9094":
+        df = format_speed(df)
+
+        
     for group in groups[df_key]:
         # Define the current group
         outname = str("PT_")+str(group)
