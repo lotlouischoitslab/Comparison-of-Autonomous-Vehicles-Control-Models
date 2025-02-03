@@ -84,10 +84,13 @@ accl_max = 3  # Prevent excessive acceleration
 
 
 rho_min = 0.01 
-rho_max = 0.15 
+rho_max = 0.03
 
-lamb_min = 0.1 
+lamb_min = 0.001 
 lamb_max = 0.4 
+
+vf_min = 25
+vf_max = 30
   
 
 most_leading_leader_id = None
@@ -201,7 +204,7 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_mi
 
 
 def simulate_car_following(params): 
-    rho, lamb = params 
+    rho, lamb,vf = params 
 
 
     num_steps = round(total_time / time_step)
@@ -217,8 +220,7 @@ def simulate_car_following(params):
 
     for i in range(1, num_steps): 
         dt = time_step # time step 
-        vh = speed[i-1] 
-        vf = 32 # free-flow speed in m/s  
+        vh = speed[i-1]  
         
         # Compute desired spacing dynamically for CTH
         desired_position = 1/(rho * (1 - vh/vf))
@@ -243,49 +245,68 @@ def simulate_car_following(params):
 
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
+
     diff_position = np.array(sim_position) - np.array(target_position)
-    diff_speed = np.array(sim_speed) - np.array(target_speed)
-    
+    diff_speed = np.array(sim_speed) -  np.array(target_speed)
+
     # Calculate errors
     mse_position = np.mean(diff_position ** 2)
     mse_speed = np.mean(diff_speed ** 2)
     mse = mse_position + mse_speed
-    
+
     rmse_position = np.sqrt(mse_position)
     rmse_speed = np.sqrt(mse_speed)
     rmse = np.sqrt(mse)
-    
+
     mae_position = np.mean(np.abs(diff_position))
     mae_speed = np.mean(np.abs(diff_speed))
     mae = mae_position + mae_speed
+
+ 
     
-    mape_position = np.mean(np.abs(diff_position / np.array(target_position))) * 100
-    mape_speed = np.mean(np.abs(diff_speed / (np.array(target_speed) + 1e-8))) * 100
+    # FIX: Avoid division by zero for MAPE calculation
+    valid_position_mask = target_position != 0  # Mask for nonzero values
+    valid_speed_mask = target_speed != 0  # Mask for nonzero values
+
+    if np.any(valid_position_mask):  # Ensure there are nonzero values
+        mape_position = np.mean(np.abs(diff_position[valid_position_mask] / target_position[valid_position_mask])) * 100
+    else:
+        mape_position = 0  # If all values are zero, set to 0
+
+    if np.any(valid_speed_mask):
+        mape_speed = np.mean(np.abs(diff_speed[valid_speed_mask] / target_speed[valid_speed_mask])) * 100
+    else:
+        mape_speed = 0  # If all values are zero, set to 0
+
     mape = (mape_position + mape_speed) / 2
-    
-    nrmse_position = rmse_position / (np.max(target_position) - np.min(target_position))
-    nrmse_speed = rmse_speed / (np.max(target_speed) - np.min(target_speed))
+
+    # Normalize RMSE to avoid division by zero
+    pos_range = np.max(target_position) - np.min(target_position)
+    speed_range = np.max(target_speed) - np.min(target_speed)
+
+    nrmse_position = rmse_position / (pos_range if pos_range != 0 else 1)
+    nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
     nrmse = (nrmse_position + nrmse_speed) / 2
-    
+
     sse_position = np.sum(diff_position ** 2)
     sse_speed = np.sum(diff_speed ** 2)
     sse = sse_position + sse_speed
-    
+
     ss_res_position = np.sum(diff_position ** 2)
-    ss_tot_position = np.sum((np.array(target_position) - np.mean(target_position)) ** 2)
-    r2_position = 1 - (ss_res_position / ss_tot_position)
-    
+    ss_tot_position = np.sum((target_position - np.mean(target_position)) ** 2)
+    r2_position = 1 - (ss_res_position / ss_tot_position) if ss_tot_position != 0 else 0
+
     ss_res_speed = np.sum(diff_speed ** 2)
-    ss_tot_speed = np.sum((np.array(target_speed) - np.mean(target_speed)) ** 2)
-    r2_speed = 1 - (ss_res_speed / ss_tot_speed)
-    
+    ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
+    r2_speed = 1 - (ss_res_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
+
     r2 = (r2_position + r2_speed) / 2
-    
+
     total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
-    
+
     # Fitness is the inverse of total error to maximize fitness
     fitness_value = 1.0 / (total_diff + 1e-5)
-    
+
     # Store all error metrics in a dictionary
     error_metrics = {
         'MSE': mse,
@@ -297,8 +318,10 @@ def fitness(params):
         'R-squared': r2,
         'Total Difference': total_diff
     }
-    
+
     return fitness_value, error_metrics  # Return fitness and all error metrics
+
+
 
 # def crossover(parent1, parent2):
 #     crossover_point = random.randint(0, len(parent1) - 1)
@@ -306,14 +329,16 @@ def fitness(params):
 #     child2 = parent2[:crossover_point] + parent1[crossover_point:]
 #     return child1, child2
 
+
+
 def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
 
     # Clip values to be within valid ranges
-    child1 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child1)]
-    child2 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child2)]
+    # child1 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child1)]
+    # child2 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child2)]
     
     return child1, child2
 
@@ -330,7 +355,10 @@ def mutate(child, param_ranges):
 def genetic_algorithm():
     rho_range = (rho_min, rho_max)
     lamb_range = (lamb_min, lamb_max)
-    param_ranges = [rho_range,lamb_range]
+    vf_range = (vf_min, vf_max)
+
+    param_ranges = [rho_range,lamb_range, vf_range]
+    
 
     # Population with random lambda parameters
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
@@ -398,7 +426,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['rho', 'lamb']
+    param_names = ['rho', 'lamb','vf']
     num_params = len(param_names)
     
     #convert list of lists into a 2D numpy array for easier column-wise access
@@ -516,7 +544,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'rho','lamb', 'Error']+ metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'rho','lamb','vf', 'Error']+ metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

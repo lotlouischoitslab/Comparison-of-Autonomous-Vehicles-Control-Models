@@ -81,15 +81,15 @@ print(I294l2_A)
 population_size = 40  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
-delta = 0.1  # Smaller mutation step to refine tuning
+delta = 0.15 # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
-th_min = 2.5
-th_max = 6.0 
-dmin_min = 4
-dmin_max = 6
+th_min = 1.0
+th_max = 2.0  
+dmin_min = 3
+dmin_max = 5
 lamb_min = 0.0001
-lamb_max = 0.5
+lamb_max = 0.4
 most_leading_leader_id = None
 #################################################################################################################
  
@@ -181,6 +181,7 @@ def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_mi
     gap_error = vehicle_dict['gap'] + S_desired
     speed_error = vehicle_dict['deltav']
     h = time_headway
+     
 
     # Compute acceleration
     accl_cf = -(1 / h) * (speed_error + lambda_param * gap_error)
@@ -206,7 +207,7 @@ def simulate_car_following(params):
         dt = time_step # time step 
 
         # Compute desired spacing dynamically for CTH
-        S_desired = time_headway * speed[i - 1] + dmin
+        S_desired = time_headway * target_speed[i - 1] + dmin
 
         vehicle_dict = { 
             'gap':  position[i - 1] - target_position[i - 1],
@@ -227,49 +228,68 @@ def simulate_car_following(params):
 
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
+
     diff_position = np.array(sim_position) - np.array(target_position)
-    diff_speed = np.array(sim_speed) - np.array(target_speed)
-    
+    diff_speed = np.array(sim_speed) -  np.array(target_speed)
+
     # Calculate errors
     mse_position = np.mean(diff_position ** 2)
     mse_speed = np.mean(diff_speed ** 2)
     mse = mse_position + mse_speed
-    
+
     rmse_position = np.sqrt(mse_position)
     rmse_speed = np.sqrt(mse_speed)
     rmse = np.sqrt(mse)
-    
+
     mae_position = np.mean(np.abs(diff_position))
     mae_speed = np.mean(np.abs(diff_speed))
     mae = mae_position + mae_speed
+
+ 
     
-    mape_position = np.mean(np.abs(diff_position / np.array(target_position))) * 100
-    mape_speed = np.mean(np.abs(diff_speed / (np.array(target_speed) + 1e-8))) * 100
+    # FIX: Avoid division by zero for MAPE calculation
+    valid_position_mask = target_position != 0  # Mask for nonzero values
+    valid_speed_mask = target_speed != 0  # Mask for nonzero values
+
+    if np.any(valid_position_mask):  # Ensure there are nonzero values
+        mape_position = np.mean(np.abs(diff_position[valid_position_mask] / target_position[valid_position_mask])) * 100
+    else:
+        mape_position = 0  # If all values are zero, set to 0
+
+    if np.any(valid_speed_mask):
+        mape_speed = np.mean(np.abs(diff_speed[valid_speed_mask] / target_speed[valid_speed_mask])) * 100
+    else:
+        mape_speed = 0  # If all values are zero, set to 0
+
     mape = (mape_position + mape_speed) / 2
-    
-    nrmse_position = rmse_position / (np.max(target_position) - np.min(target_position))
-    nrmse_speed = rmse_speed / (np.max(target_speed) - np.min(target_speed))
+
+    # Normalize RMSE to avoid division by zero
+    pos_range = np.max(target_position) - np.min(target_position)
+    speed_range = np.max(target_speed) - np.min(target_speed)
+
+    nrmse_position = rmse_position / (pos_range if pos_range != 0 else 1)
+    nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
     nrmse = (nrmse_position + nrmse_speed) / 2
-    
+
     sse_position = np.sum(diff_position ** 2)
     sse_speed = np.sum(diff_speed ** 2)
     sse = sse_position + sse_speed
-    
+
     ss_res_position = np.sum(diff_position ** 2)
-    ss_tot_position = np.sum((np.array(target_position) - np.mean(target_position)) ** 2)
-    r2_position = 1 - (ss_res_position / ss_tot_position)
-    
+    ss_tot_position = np.sum((target_position - np.mean(target_position)) ** 2)
+    r2_position = 1 - (ss_res_position / ss_tot_position) if ss_tot_position != 0 else 0
+
     ss_res_speed = np.sum(diff_speed ** 2)
-    ss_tot_speed = np.sum((np.array(target_speed) - np.mean(target_speed)) ** 2)
-    r2_speed = 1 - (ss_res_speed / ss_tot_speed)
-    
+    ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
+    r2_speed = 1 - (ss_res_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
+
     r2 = (r2_position + r2_speed) / 2
-    
+
     total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
-    
+
     # Fitness is the inverse of total error to maximize fitness
     fitness_value = 1.0 / (total_diff + 1e-5)
-    
+
     # Store all error metrics in a dictionary
     error_metrics = {
         'MSE': mse,
@@ -281,65 +301,85 @@ def fitness(params):
         'R-squared': r2,
         'Total Difference': total_diff
     }
-    
+
     return fitness_value, error_metrics  # Return fitness and all error metrics
 
 
 
-# def crossover(parent1, parent2):
+
+# def crossover(parent1, parent2, param_ranges):
 #     crossover_point = random.randint(0, len(parent1) - 1)
 #     child1 = parent1[:crossover_point] + parent2[crossover_point:]
 #     child2 = parent2[:crossover_point] + parent1[crossover_point:]
+
+#     # child1 = [np.clip(child1[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child1))]
+#     # child2 = [np.clip(child2[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child2))]
+
 #     return child1, child2
+
+ 
+
+
+
+# def mutate(child, param_ranges):
+#     for i in range(len(child)):
+#         if random.random() < mutation_rate:
+#             child[i] += random.uniform(-delta, delta) 
+#             # child[i] = np.clip(child[i], param_ranges[i][0], param_ranges[i][1])
+         
+#     return child
+
 
 def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
 
-    # Clip values to be within valid ranges
-    child1 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child1)]
-    child2 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child2)]
-    
+    child1 = [np.clip(child1[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child1))]
+    child2 = [np.clip(child2[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child2))]
+
     return child1, child2
 
+ 
 
 
 def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            child[i] += random.uniform(-delta, delta) 
-         
+            child[i] += random.uniform(-delta, delta)
+            child[i] = np.clip(child[i], param_ranges[i][0], param_ranges[i][1])
+             
     return child
 
 
+ 
 
-
-
-def genetic_algorithm():
+def genetic_algorithm(): 
     th_range = (th_min, th_max)
     dmin_range = (dmin_min, dmin_max)
-    lamb_range = (lamb_min, lamb_max)  
+    lamb_range = (lamb_min, lamb_max)   
     
     # Define parameter ranges
     param_ranges = [th_range, dmin_range, lamb_range]
+ 
 
-    # Initialize population
+    # Initialize population with random parameter values
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
     
     best_error = float('inf')
     best_individual = None
     best_metrics = None
-
+    
     for generation in range(num_generations):
-        # Evaluate fitness
-        fitness_values = [fitness(individual) for individual in population]
-        population_sorted = sorted(zip(population, fitness_values), key=lambda x: x[1][0], reverse=True)
+        # Evaluate fitness (simulate car-following behavior)
+        fitness_and_errors = [fitness(individual) for individual in population]
+        population_sorted = sorted(zip(population, fitness_and_errors), key=lambda x: x[1][0], reverse=True)
         population = [ind for ind, _ in population_sorted]
-
+        
         # Update best individual if a better one is found
         current_best_error = population_sorted[0][1][1]['Total Difference']
 
+        # Update best individual
         if current_best_error < best_error:
             best_error = current_best_error
             best_individual = population_sorted[0][0]
@@ -354,9 +394,72 @@ def genetic_algorithm():
             child1, child2 = crossover(parent1, parent2, param_ranges)
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
+
+            # Only add valid children
+            if all(param_ranges[i][0] <= child1[i] <= param_ranges[i][1] for i in range(len(child1))):
+                children.append(child1)
+            if all(param_ranges[i][0] <= child2[i] <= param_ranges[i][1] for i in range(len(child2))):
+                children.append(child2)
+
         population = parents + children[:population_size - len(parents)]
 
+    # Return best parameters and performance metrics
     return best_individual, best_error, best_metrics
+
+
+
+
+# def genetic_algorithm():
+#     th_range = (th_min, th_max)
+#     dmin_range = (dmin_min, dmin_max)
+#     lamb_range = (lamb_min, lamb_max)  
+    
+#     # Define parameter ranges
+#     param_ranges = [th_range, dmin_range, lamb_range]
+
+#     # Initialize population
+#     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
+    
+#     best_error = float('inf')
+#     best_individual = None
+#     best_metrics = None
+
+#     for generation in range(num_generations):
+#         # Evaluate fitness
+#         fitness_values = [fitness(individual) for individual in population]
+#         population_sorted = sorted(zip(population, fitness_values), key=lambda x: x[1][0], reverse=True)
+#         population = [ind for ind, _ in population_sorted]
+
+#         # Update best individual if a better one is found
+#         current_best_error = population_sorted[0][1][1]['Total Difference']
+
+#         if current_best_error < best_error:
+#             best_error = current_best_error
+#             best_individual = population_sorted[0][0]
+#             best_metrics = population_sorted[0][1][1]
+
+#         # Parent selection
+#         parents = population[:len(population) // 2]
+#         children = []
+
+#         while len(children) < (population_size - len(parents)):
+#             parent1, parent2 = random.sample(parents, 2)
+#             child1, child2 = crossover(parent1, parent2, param_ranges)
+#             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
+
+
+#             # Only add valid children
+#             # if all(param_ranges[i][0] <= child1[i] <= param_ranges[i][1] for i in range(len(child1))):
+#             #     children.append(child1)
+#             # if all(param_ranges[i][0] <= child2[i] <= param_ranges[i][1] for i in range(len(child2))):
+#             #     children.append(child2)
+
+
+#         population = parents + children[:population_size - len(parents)]
+
+#     return best_individual, best_error, best_metrics
+
+ 
 
 
 

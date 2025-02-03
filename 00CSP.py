@@ -90,13 +90,13 @@ mutation_rate = 0.1  # Reduce mutation rate for better stability
 delta = 0.1  # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3 # Prevent excessive acceleration
-kp_min = 0.5 # Reduce from 3 to allow smoother position control
+kp_min = 0.00001 # Reduce from 3 to allow smoother position control
 kp_max = 2.0  # Upper limit to prevent excessive reaction
 
 kv_min = 1.0  # Reduce speed correction term for smoother response
-kv_max = 2.0  # Keep max value lower to avoid overcompensation
+kv_max = 8.0  # Keep max value lower to avoid overcompensation
 
-S_desired_min = 6
+S_desired_min = 5
 S_desired_max = 9
 most_leading_leader_id = None   
 #################################################################################################################
@@ -276,6 +276,7 @@ def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
     diff_position = np.array(sim_position) - np.array(target_position)
     diff_speed = np.array(sim_speed) - np.array(target_speed)
+
     
     # Calculate errors
     mse_position = np.mean(diff_position ** 2)
@@ -289,9 +290,12 @@ def fitness(params):
     mae_position = np.mean(np.abs(diff_position))
     mae_speed = np.mean(np.abs(diff_speed))
     mae = mae_position + mae_speed
-    
-    mape_position = np.mean(np.abs(diff_position / np.array(target_position))) * 100
-    mape_speed = np.mean(np.abs(diff_speed / (np.array(target_speed) + 1e-8))) * 100
+
+    print(target_position)
+        
+    mape_position = np.mean(np.abs(diff_position / (target_position ))) * 100
+    mape_speed = np.mean(np.abs(diff_speed / (target_speed ))) * 100
+
     mape = (mape_position + mape_speed) / 2
     
     nrmse_position = rmse_position / (np.max(target_position) - np.min(target_position))
@@ -332,15 +336,98 @@ def fitness(params):
     return fitness_value, error_metrics  # Return fitness and all error metrics
 
 
+
  
+def fitness(params):
+    sim_position, sim_speed, acl = simulate_car_following(params)
+
+    diff_position = np.array(sim_position) - np.array(target_position)
+    diff_speed = np.array(sim_speed) -  np.array(target_speed)
+
+    # Calculate errors
+    mse_position = np.mean(diff_position ** 2)
+    mse_speed = np.mean(diff_speed ** 2)
+    mse = mse_position + mse_speed
+
+    rmse_position = np.sqrt(mse_position)
+    rmse_speed = np.sqrt(mse_speed)
+    rmse = np.sqrt(mse)
+
+    mae_position = np.mean(np.abs(diff_position))
+    mae_speed = np.mean(np.abs(diff_speed))
+    mae = mae_position + mae_speed
+
+ 
+    
+    # FIX: Avoid division by zero for MAPE calculation
+    valid_position_mask = target_position != 0  # Mask for nonzero values
+    valid_speed_mask = target_speed != 0  # Mask for nonzero values
+
+    if np.any(valid_position_mask):  # Ensure there are nonzero values
+        mape_position = np.mean(np.abs(diff_position[valid_position_mask] / target_position[valid_position_mask])) * 100
+    else:
+        mape_position = 0  # If all values are zero, set to 0
+
+    if np.any(valid_speed_mask):
+        mape_speed = np.mean(np.abs(diff_speed[valid_speed_mask] / target_speed[valid_speed_mask])) * 100
+    else:
+        mape_speed = 0  # If all values are zero, set to 0
+
+    mape = (mape_position + mape_speed) / 2
+
+    # Normalize RMSE to avoid division by zero
+    pos_range = np.max(target_position) - np.min(target_position)
+    speed_range = np.max(target_speed) - np.min(target_speed)
+
+    nrmse_position = rmse_position / (pos_range if pos_range != 0 else 1)
+    nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
+    nrmse = (nrmse_position + nrmse_speed) / 2
+
+    sse_position = np.sum(diff_position ** 2)
+    sse_speed = np.sum(diff_speed ** 2)
+    sse = sse_position + sse_speed
+
+    ss_res_position = np.sum(diff_position ** 2)
+    ss_tot_position = np.sum((target_position - np.mean(target_position)) ** 2)
+    r2_position = 1 - (ss_res_position / ss_tot_position) if ss_tot_position != 0 else 0
+
+    ss_res_speed = np.sum(diff_speed ** 2)
+    ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
+    r2_speed = 1 - (ss_res_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
+
+    r2 = (r2_position + r2_speed) / 2
+
+    total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
+
+    # Fitness is the inverse of total error to maximize fitness
+    fitness_value = 1.0 / (total_diff + 1e-5)
+
+    # Store all error metrics in a dictionary
+    error_metrics = {
+        'MSE': mse,
+        'RMSE': rmse,
+        'MAE': mae,
+        'MAPE': mape,
+        'NRMSE': nrmse,
+        'SSE': sse,
+        'R-squared': r2,
+        'Total Difference': total_diff
+    }
+
+    return fitness_value, error_metrics  # Return fitness and all error metrics
 
 
 
 
-def crossover(parent1, parent2):
+
+def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
+
+    child1 = [np.clip(child1[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child1))]
+    child2 = [np.clip(child2[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child2))]
+
     return child1, child2
 
  
@@ -350,6 +437,7 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
+            child[i] = np.clip(child[i], param_ranges[i][0], param_ranges[i][1])
              
     return child
 
@@ -394,8 +482,15 @@ def genetic_algorithm():
 
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
-            child1, child2 = crossover(parent1, parent2)
+            child1, child2 = crossover(parent1, parent2, param_ranges)
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
+
+
+            # Only add valid children
+            if all(param_ranges[i][0] <= child1[i] <= param_ranges[i][1] for i in range(len(child1))):
+                children.append(child1)
+            if all(param_ranges[i][0] <= child2[i] <= param_ranges[i][1] for i in range(len(child2))):
+                children.append(child2)
 
         population = parents + children[:population_size - len(parents)]
 
