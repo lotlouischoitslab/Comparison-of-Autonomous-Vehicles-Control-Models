@@ -80,7 +80,7 @@ print(I294l2_A)
 
 
 population_size = 40
-num_generations = 80 
+num_generations = 100 
 mutation_rate = 0.1
 delta = 0.1
 accl_min = -5  # More realistic braking limit
@@ -88,21 +88,21 @@ accl_max = 3  # Prevent excessive acceleration
 
 
 
-dmin_min = 5
-dmin_max = 12   
+dmin_min = 2.5
+dmin_max = 3.5   
 
-td_min = 1.1  # Reduce reaction time
-td_max = 2.0
+td_min = 0.01 # Delay Time min
+td_max = 0.10 # Delay Time max
 
 
 lamb_min = 0.001  # Reduce control gain
-lamb_max = 0.05
+lamb_max = 0.9
 
 K_min = 1.0   # Reduce safety coefficient
-K_max = 2.0
+K_max = 4.0
 
 gamma_min = 2.0  # Reduce braking dynamics coefficient
-gamma_max = 4.0
+gamma_max = 6.0
 
 
  
@@ -266,6 +266,8 @@ def format_speed(df):
     return df
 
 
+
+
 def simulate_car_following(params):
     """
     Simulates car-following behavior using the Constant Safety Factor (CSF) spacing policy.
@@ -351,6 +353,7 @@ def simulate_car_following(params):
 
 
 
+ 
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
 
@@ -360,7 +363,7 @@ def fitness(params):
     # Calculate errors
     mse_position = np.mean(diff_position ** 2)
     mse_speed = np.mean(diff_speed ** 2)
-    mse = mse_position + mse_speed
+    mse = (mse_position + mse_speed)/2 
 
     rmse_position = np.sqrt(mse_position)
     rmse_speed = np.sqrt(mse_speed)
@@ -369,7 +372,6 @@ def fitness(params):
     mae_position = np.mean(np.abs(diff_position))
     mae_speed = np.mean(np.abs(diff_speed))
     mae = mae_position + mae_speed
-
  
     
     # FIX: Avoid division by zero for MAPE calculation
@@ -434,11 +436,18 @@ def fitness(params):
 
 
 
-def crossover(parent1, parent2):
+
+def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
+
+    child1 = [np.clip(child1[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child1))]
+    child2 = [np.clip(child2[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child2))]
+
     return child1, child2
+
+ 
 
 
 
@@ -446,9 +455,14 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            
+            child[i] = np.clip(child[i], param_ranges[i][0], param_ranges[i][1])
+             
     return child
 
+
+ 
+
+ 
 
 def genetic_algorithm(): 
     dmin_range = (dmin_min, dmin_max)
@@ -486,8 +500,14 @@ def genetic_algorithm():
         children = []
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
-            child1, child2 = crossover(parent1, parent2)
+            child1, child2 = crossover(parent1, parent2, param_ranges)
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
+                        # Only add valid children
+            if all(param_ranges[i][0] <= child1[i] <= param_ranges[i][1] for i in range(len(child1))):
+                children.append(child1)
+            if all(param_ranges[i][0] <= child2[i] <= param_ranges[i][1] for i in range(len(child2))):
+                children.append(child2)
+
         population = parents + children[:population_size - len(parents)]
     
     #return the best individual, best error, and best error metrics after all generations

@@ -243,6 +243,7 @@ def simulate_car_following(params):
 
 
 
+ 
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
 
@@ -252,7 +253,7 @@ def fitness(params):
     # Calculate errors
     mse_position = np.mean(diff_position ** 2)
     mse_speed = np.mean(diff_speed ** 2)
-    mse = mse_position + mse_speed
+    mse = (mse_position + mse_speed)/2
 
     rmse_position = np.sqrt(mse_position)
     rmse_speed = np.sqrt(mse_speed)
@@ -261,7 +262,6 @@ def fitness(params):
     mae_position = np.mean(np.abs(diff_position))
     mae_speed = np.mean(np.abs(diff_speed))
     mae = mae_position + mae_speed
-
  
     
     # FIX: Avoid division by zero for MAPE calculation
@@ -320,6 +320,7 @@ def fitness(params):
     }
 
     return fitness_value, error_metrics  # Return fitness and all error metrics
+
 
 
 

@@ -256,6 +256,8 @@ def simulate_car_following(params):
 
 
 
+
+ 
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
 
@@ -265,7 +267,7 @@ def fitness(params):
     # Calculate errors
     mse_position = np.mean(diff_position ** 2)
     mse_speed = np.mean(diff_speed ** 2)
-    mse = mse_position + mse_speed
+    mse = (mse_position + mse_speed)/2  
 
     rmse_position = np.sqrt(mse_position)
     rmse_speed = np.sqrt(mse_speed)
@@ -274,7 +276,6 @@ def fitness(params):
     mae_position = np.mean(np.abs(diff_position))
     mae_speed = np.mean(np.abs(diff_speed))
     mae = mae_position + mae_speed
-
  
     
     # FIX: Avoid division by zero for MAPE calculation
@@ -338,18 +339,25 @@ def fitness(params):
 
 
 
-def crossover(parent1, parent2):
+def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
+
+    child1 = [np.clip(child1[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child1))]
+    child2 = [np.clip(child2[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child2))]
+
     return child1, child2
 
+ 
 
 
-def mutate(child):
+def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
+            child[i] = np.clip(child[i], param_ranges[i][0], param_ranges[i][1])
+             
     return child
 
     

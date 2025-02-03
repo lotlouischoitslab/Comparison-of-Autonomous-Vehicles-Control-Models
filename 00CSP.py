@@ -271,201 +271,74 @@ def simulate_car_following(params):
 
  
 
-
-# def fitness(params):
-#     sim_position, sim_speed, acl = simulate_car_following(params)
-#     diff_position = np.array(sim_position) - np.array(target_position)
-#     diff_speed = np.array(sim_speed) - np.array(target_speed)
-
-    
-#     # Calculate errors
-#     mse_position = np.mean(diff_position ** 2)
-#     mse_speed = np.mean(diff_speed ** 2)
-#     mse = mse_position + mse_speed
-    
-#     rmse_position = np.sqrt(mse_position)
-#     rmse_speed = np.sqrt(mse_speed)
-#     rmse = np.sqrt(mse)
-    
-#     mae_position = np.mean(np.abs(diff_position))
-#     mae_speed = np.mean(np.abs(diff_speed))
-#     mae = mae_position + mae_speed
-
-#     print(target_position)
-        
-#     mape_position = np.mean(np.abs(diff_position / (target_position ))) * 100
-#     mape_speed = np.mean(np.abs(diff_speed / (target_speed ))) * 100
-
-#     mape = (mape_position + mape_speed) / 2
-    
-#     nrmse_position = rmse_position / (np.max(target_position) - np.min(target_position))
-#     nrmse_speed = rmse_speed / (np.max(target_speed) - np.min(target_speed))
-#     nrmse = (nrmse_position + nrmse_speed) / 2
-    
-#     sse_position = np.sum(diff_position ** 2)
-#     sse_speed = np.sum(diff_speed ** 2)
-#     sse = sse_position + sse_speed
-    
-#     ss_res_position = np.sum(diff_position ** 2)
-#     ss_tot_position = np.sum((np.array(target_position) - np.mean(target_position)) ** 2)
-#     r2_position = 1 - (ss_res_position / ss_tot_position)
-    
-#     ss_res_speed = np.sum(diff_speed ** 2)
-#     ss_tot_speed = np.sum((np.array(target_speed) - np.mean(target_speed)) ** 2)
-#     r2_speed = 1 - (ss_res_speed / ss_tot_speed)
-    
-#     r2 = (r2_position + r2_speed) / 2
-    
-#     total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
-    
-#     # Fitness is the inverse of total error to maximize fitness
-#     fitness_value = 1.0 / (total_diff + 1e-5)
-    
-#     # Store all error metrics in a dictionary
-#     error_metrics = {
-#         'MSE': mse,
-#         'RMSE': rmse,
-#         'MAE': mae,
-#         'MAPE': mape,
-#         'NRMSE': nrmse,
-#         'SSE': sse,
-#         'R-squared': r2,
-#         'Total Difference': total_diff
-#     }
-    
-#     return fitness_value, error_metrics  # Return fitness and all error metrics
-
+ 
 
 
  
-# def fitness(params):
-#     sim_position, sim_speed, acl = simulate_car_following(params)
-
-#     diff_position = np.array(sim_position) - np.array(target_position)
-#     diff_speed = np.array(sim_speed) -  np.array(target_speed)
-
-#     # Calculate errors
-#     mse_position = np.mean(diff_position ** 2)
-#     mse_speed = np.mean(diff_speed ** 2)
-#     mse = mse_position + mse_speed
-
-#     rmse_position = np.sqrt(mse_position)
-#     rmse_speed = np.sqrt(mse_speed)
-#     rmse = np.sqrt(mse)
-
-#     mae_position = np.mean(np.abs(diff_position))
-#     mae_speed = np.mean(np.abs(diff_speed))
-#     mae = mae_position + mae_speed
-
- 
-    
-#     # FIX: Avoid division by zero for MAPE calculation
-#     valid_position_mask = target_position != 0  # Mask for nonzero values
-#     valid_speed_mask = target_speed != 0  # Mask for nonzero values
-
-#     if np.any(valid_position_mask):  # Ensure there are nonzero values
-#         mape_position = np.mean(np.abs(diff_position[valid_position_mask] / target_position[valid_position_mask])) * 100
-#     else:
-#         mape_position = 0  # If all values are zero, set to 0
-
-#     if np.any(valid_speed_mask):
-#         mape_speed = np.mean(np.abs(diff_speed[valid_speed_mask] / target_speed[valid_speed_mask])) * 100
-#     else:
-#         mape_speed = 0  # If all values are zero, set to 0
-
-#     mape = (mape_position + mape_speed) / 2
-
-#     # Normalize RMSE to avoid division by zero
-#     pos_range = np.max(target_position) - np.min(target_position)
-#     speed_range = np.max(target_speed) - np.min(target_speed)
-
-#     nrmse_position = rmse_position / (pos_range if pos_range != 0 else 1)
-#     nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
-#     nrmse = (nrmse_position + nrmse_speed) / 2
-
-#     sse_position = np.sum(diff_position ** 2)
-#     sse_speed = np.sum(diff_speed ** 2)
-#     sse = sse_position + sse_speed
-
-#     ss_res_position = np.sum(diff_position ** 2)
-#     ss_tot_position = np.sum((target_position - np.mean(target_position)) ** 2)
-#     r2_position = 1 - (ss_res_position / ss_tot_position) if ss_tot_position != 0 else 0
-
-#     ss_res_speed = np.sum(diff_speed ** 2)
-#     ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
-#     r2_speed = 1 - (ss_res_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
-
-#     r2 = (r2_position + r2_speed) / 2
-
-#     total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
-
-#     # Fitness is the inverse of total error to maximize fitness
-#     fitness_value = 1.0 / (total_diff + 1e-5)
-
-#     # Store all error metrics in a dictionary
-#     error_metrics = {
-#         'MSE': mse,
-#         'RMSE': rmse,
-#         'MAE': mae,
-#         'MAPE': mape,
-#         'NRMSE': nrmse,
-#         'SSE': sse,
-#         'R-squared': r2,
-#         'Total Difference': total_diff
-#     }
-
-#     return fitness_value, error_metrics  # Return fitness and all error metrics
-
-
-
-
 def fitness(params):
-    sim_position, sim_speed, acl = simulate_car_following(params) 
+    sim_position, sim_speed, acl = simulate_car_following(params)
 
     diff_position = np.array(sim_position) - np.array(target_position)
-    diff_speed = np.array(sim_speed) - np.array(target_speed)
+    diff_speed = np.array(sim_speed) -  np.array(target_speed)
 
-    # Calculate Mean Squared Error (MSE)
+    # Calculate errors
     mse_position = np.mean(diff_position ** 2)
     mse_speed = np.mean(diff_speed ** 2)
-    mse = (mse_position + mse_speed) / 2  # FIX: Compute mean instead of sum
+    mse = (mse_position + mse_speed)/2
+
+    rmse_position = np.sqrt(mse_position)
+    rmse_speed = np.sqrt(mse_speed)
     rmse = np.sqrt(mse)
 
-    # Calculate Mean Absolute Error (MAE)
     mae_position = np.mean(np.abs(diff_position))
     mae_speed = np.mean(np.abs(diff_speed))
-    mae = (mae_position + mae_speed) / 2  # FIX: Compute mean instead of sum
+    mae = mae_position + mae_speed
+ 
+    
+    # FIX: Avoid division by zero for MAPE calculation
+    valid_position_mask = target_position != 0  # Mask for nonzero values
+    valid_speed_mask = target_speed != 0  # Mask for nonzero values
 
-    # Avoid division by zero in MAPE calculation
-    mape_position = np.mean(np.abs(diff_position / (np.array(target_position) + 1e-5))) * 100
-    mape_speed = np.mean(np.abs(diff_speed / (np.array(target_speed) + 1e-5))) * 100
+    if np.any(valid_position_mask):  # Ensure there are nonzero values
+        mape_position = np.mean(np.abs(diff_position[valid_position_mask] / target_position[valid_position_mask])) * 100
+    else:
+        mape_position = 0  # If all values are zero, set to 0
+
+    if np.any(valid_speed_mask):
+        mape_speed = np.mean(np.abs(diff_speed[valid_speed_mask] / target_speed[valid_speed_mask])) * 100
+    else:
+        mape_speed = 0  # If all values are zero, set to 0
+
     mape = (mape_position + mape_speed) / 2
 
-    # Compute Normalized RMSE (NRMSE)
+    # Normalize RMSE to avoid division by zero
     pos_range = np.max(target_position) - np.min(target_position)
     speed_range = np.max(target_speed) - np.min(target_speed)
-    nrmse_position = rmse / (pos_range if pos_range != 0 else 1)
-    nrmse_speed = rmse / (speed_range if speed_range != 0 else 1)
+
+    nrmse_position = rmse_position / (pos_range if pos_range != 0 else 1)
+    nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
     nrmse = (nrmse_position + nrmse_speed) / 2
 
-    # Compute Sum of Squared Errors (SSE)
-    sse = (np.sum(diff_position ** 2) + np.sum(diff_speed ** 2)) / len(target_position)  # Normalize by dataset size
+    sse_position = np.sum(diff_position ** 2)
+    sse_speed = np.sum(diff_speed ** 2)
+    sse = sse_position + sse_speed
 
-    # Compute R-Squared Score (Ensure No Division by Zero)
+    ss_res_position = np.sum(diff_position ** 2)
     ss_tot_position = np.sum((target_position - np.mean(target_position)) ** 2)
+    r2_position = 1 - (ss_res_position / ss_tot_position) if ss_tot_position != 0 else 0
+
+    ss_res_speed = np.sum(diff_speed ** 2)
     ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
-    
-    r2_position = 1 - (np.sum(diff_position ** 2) / ss_tot_position) if ss_tot_position != 0 else 0
-    r2_speed = 1 - (np.sum(diff_speed ** 2) / ss_tot_speed) if ss_tot_speed != 0 else 0
+    r2_speed = 1 - (ss_res_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
+
     r2 = (r2_position + r2_speed) / 2
 
-    # Compute Total Difference
     total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
 
-    # Compute Fitness (Avoid Division by Zero)
+    # Fitness is the inverse of total error to maximize fitness
     fitness_value = 1.0 / (total_diff + 1e-5)
 
-    # Store All Metrics in % 
+    # Store all error metrics in a dictionary
     error_metrics = {
         'MSE': mse,
         'RMSE': rmse,
@@ -478,7 +351,6 @@ def fitness(params):
     }
 
     return fitness_value, error_metrics  # Return fitness and all error metrics
-
 
 
 
