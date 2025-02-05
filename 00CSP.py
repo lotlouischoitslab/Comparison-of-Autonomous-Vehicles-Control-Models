@@ -94,9 +94,9 @@ kp_min = 0.001 # Reduce from 3 to allow smoother position control
 kp_max = 2.0  # Upper limit to prevent excessive reaction
 
 kv_min = 0.001  # Reduce speed correction term for smoother response
-kv_max = 2.0  # Keep max value lower to avoid overcompensation
+kv_max = 5.0  # Keep max value lower to avoid overcompensation
 
-S_desired_min = 3
+S_desired_min = 4
 S_desired_max = 6
 most_leading_leader_id = None   
 #################################################################################################################
