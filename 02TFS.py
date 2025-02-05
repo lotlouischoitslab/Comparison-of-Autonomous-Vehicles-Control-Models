@@ -76,21 +76,23 @@ print(I294l1_A)
 print(I294l2_A)
 
 population_size = 40
-num_generations = 80
+num_generations = 100
 mutation_rate = 0.1 
 delta = 0.1
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
 
 
-rho_min = 0.01 
-rho_max = 0.03
+rho_min = 0.1 
+rho_max = 0.3
 
-lamb_min = 0.001 
-lamb_max = 0.4 
+
+lamb_min = 0.001
+lamb_max = 0.4
+ 
 
 vf_min = 25
-vf_max = 30
+vf_max = 32
   
 
 most_leading_leader_id = None
@@ -176,6 +178,8 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
+
+## epsilon_dot = inter-vehicle spacing / dt
 def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_min, accl_max, desired_position):
     """
     Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
@@ -193,11 +197,11 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_mi
     """ 
     
     # Extract relevant parameters
-    gap_error = vehicle_dict['gap'] + desired_position
-    speed_error = vehicle_dict['deltav']
+    delta_i = vehicle_dict['gap'] + desired_position
+    epsilon_dot = vehicle_dict['deltav'] 
     vi = vehicle_dict['speed']
  
-    accl_cf = -rho_max * (vf - vi) * (1 - vi / vf) * (speed_error + lambda_var * gap_error)  
+    accl_cf = -rho_max * (vf - vi) * (1 - vi / vf) * (epsilon_dot + lambda_var * delta_i)  
     accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
@@ -228,7 +232,8 @@ def simulate_car_following(params):
         vehicle_dict = { 
             'gap':  position[i - 1] - target_position[i - 1],
             'deltav': speed[i - 1] - target_speed[i - 1],
-            'speed': speed[i - 1]
+            'speed': speed[i - 1],
+            'dt': dt
         }
         
         acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho, vf, lamb, accl_min, accl_max,desired_position) 
@@ -305,7 +310,7 @@ def fitness(params):
     total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
 
     # Fitness is the inverse of total error to maximize fitness
-    fitness_value = 1.0 / (total_diff + 1e-5)
+    fitness_value = 1.0 / (total_diff  )
 
     # Store all error metrics in a dictionary
     error_metrics = {
@@ -323,13 +328,7 @@ def fitness(params):
 
 
 
-
-# def crossover(parent1, parent2):
-#     crossover_point = random.randint(0, len(parent1) - 1)
-#     child1 = parent1[:crossover_point] + parent2[crossover_point:]
-#     child2 = parent2[:crossover_point] + parent1[crossover_point:]
-#     return child1, child2
-
+ 
 
 
 def crossover(parent1, parent2, param_ranges):
@@ -338,8 +337,8 @@ def crossover(parent1, parent2, param_ranges):
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
 
     # Clip values to be within valid ranges
-    # child1 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child1)]
-    # child2 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child2)]
+    child1 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child1)]
+    child2 = [max(param_ranges[i][0], min(param_ranges[i][1], val)) for i, val in enumerate(child2)]
     
     return child1, child2
 
@@ -348,7 +347,7 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-             
+            child[i] = np.clip(child[i], param_ranges[i][0], param_ranges[i][1])            
     return child
 
 
@@ -503,6 +502,9 @@ save_dir = 'Results/02TFS/'
 
 #iterate through each dataset and group
 for df_key, df_path in datasets.items():
+
+    if df_key != 'df294l1':
+        continue
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)

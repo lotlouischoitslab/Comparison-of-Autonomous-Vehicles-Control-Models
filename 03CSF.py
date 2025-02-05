@@ -96,13 +96,13 @@ td_max = 0.10 # Delay Time max
 
 
 lamb_min = 0.001  # Reduce control gain
-lamb_max = 0.9
+lamb_max = 0.4
 
 K_min = 1.0   # Reduce safety coefficient
 K_max = 4.0
 
 gamma_min = 2.0  # Reduce braking dynamics coefficient
-gamma_max = 6.0
+gamma_max = 4.0
 
 
  
@@ -214,14 +214,15 @@ def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, a
 
     # Extract relevant parameters
     gap_error = vehicle_dict['gap'] + Dstop
-    speed_error = vehicle_dict['deltav']
+    ei_dot = vehicle_dict['deltav']/vehicle_dict['dt']
     vi = vehicle_dict['speed']
 
     # Compute denominator for acceleration calculation
-    denominator = max(td - gamma * ji * vi, 0.1)  # Prevents division by zero
+    denominator = td - gamma * ji * vi 
+
  
     # Compute acceleration based on spacing error and relative velocity
-    accl_cf = -(1 / denominator) * (speed_error + lamb * gap_error) 
+    accl_cf = -(1 / denominator) * (ei_dot + lamb * gap_error) 
     accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 

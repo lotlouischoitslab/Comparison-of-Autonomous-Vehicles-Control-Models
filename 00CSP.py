@@ -90,14 +90,14 @@ mutation_rate = 0.1  # Reduce mutation rate for better stability
 delta = 0.1  # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3 # Prevent excessive acceleration
-kp_min = 0.00001 # Reduce from 3 to allow smoother position control
+kp_min = 0.001 # Reduce from 3 to allow smoother position control
 kp_max = 2.0  # Upper limit to prevent excessive reaction
 
-kv_min = 1.0  # Reduce speed correction term for smoother response
-kv_max = 8.0  # Keep max value lower to avoid overcompensation
+kv_min = 0.001  # Reduce speed correction term for smoother response
+kv_max = 2.0  # Keep max value lower to avoid overcompensation
 
-S_desired_min = 5
-S_desired_max = 9
+S_desired_min = 3
+S_desired_max = 6
 most_leading_leader_id = None   
 #################################################################################################################
 
@@ -360,9 +360,7 @@ def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
-
-    child1 = [np.clip(child1[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child1))]
-    child2 = [np.clip(child2[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child2))]
+ 
 
     return child1, child2
 
@@ -373,7 +371,9 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            child[i] = np.clip(child[i], param_ranges[i][0], param_ranges[i][1])
+            
+            if child[i] < 0:
+                child[i] = 1e-9
              
     return child
 
@@ -421,12 +421,7 @@ def genetic_algorithm():
             child1, child2 = crossover(parent1, parent2, param_ranges)
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
-
-            # Only add valid children
-            if all(param_ranges[i][0] <= child1[i] <= param_ranges[i][1] for i in range(len(child1))):
-                children.append(child1)
-            if all(param_ranges[i][0] <= child2[i] <= param_ranges[i][1] for i in range(len(child2))):
-                children.append(child2)
+ 
 
         population = parents + children[:population_size - len(parents)]
 

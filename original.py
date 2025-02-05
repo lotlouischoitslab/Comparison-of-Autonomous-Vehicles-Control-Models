@@ -281,6 +281,8 @@ def simulate_car_following(params):
         
     return position, speed, acl
 
+
+
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
     diff_position = np.array(sim_position) - np.array(target_position)

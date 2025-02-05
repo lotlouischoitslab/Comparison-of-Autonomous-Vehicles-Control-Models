@@ -81,15 +81,15 @@ print(I294l2_A)
 population_size = 40  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
-delta = 1.0 # Smaller mutation step to refine tuning
+delta = 0.1 # Smaller mutation step to refine tuning
 accl_min = -5  # More realistic braking limit
 accl_max = 3  # Prevent excessive acceleration
-th_min = 1.3
-th_max = 3.0  
-dmin_min = 3
-dmin_max = 6
-lamb_min = 0.0001
-lamb_max = 0.9
+th_min = 3
+th_max = 5
+dmin_min = 5
+dmin_max = 8
+lamb_min = 0.2
+lamb_max = 0.6
 most_leading_leader_id = None
 #################################################################################################################
  
@@ -176,15 +176,18 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
+
+## epsilon_dot = inter-vehicle spacing / dt
+
 def acceleration_calculator(i, vehicle_dict, time_headway, lambda_param, accl_min, accl_max, S_desired):
     # Extract relevant parameters 
     gap_error = vehicle_dict['gap'] + S_desired
-    speed_error = vehicle_dict['deltav']
+    epsilon_dot = vehicle_dict['deltav'] 
     h = time_headway
      
 
     # Compute acceleration
-    accl_cf = -(1 / h) * (speed_error + lambda_param * gap_error)
+    accl_cf = -(1 / h) * (epsilon_dot + lambda_param * gap_error)
     accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
     return accl
 
@@ -205,17 +208,17 @@ def simulate_car_following(params):
     speed[0] = sdf.iloc[0]['speed_kf']
     acl[0] = 0
 
-    for i in range(1, num_steps):
-        dt = time_step # time step 
+    dt = time_step # time step 
 
-        # Compute desired spacing dynamically for CTH
-        S_desired = time_headway * target_speed[i - 1] + dmin
+    for i in range(1, num_steps):  
+        S_desired = time_headway * speed[i - 1] + dmin # Compute desired spacing dynamically for CTH
 
         vehicle_dict = { 
             'gap':  position[i - 1] - target_position[i - 1],
             'deltav': speed[i - 1] - target_speed[i - 1],
             'speed': speed[i - 1],
-            'time': time[i-1]
+            'time': time[i-1],
+            'dt': dt
         }
 
         acceleration = acceleration_calculator(i, vehicle_dict, time_headway, lamb, accl_min, accl_max, S_desired)
@@ -316,9 +319,7 @@ def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
     child2 = parent2[:crossover_point] + parent1[crossover_point:]
-
-    # child1 = [np.clip(child1[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child1))]
-    # child2 = [np.clip(child2[i], param_ranges[i][0], param_ranges[i][1]) for i in range(len(child2))]
+ 
 
     return child1, child2
 
@@ -329,7 +330,9 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            child[i] = np.clip(child[i], param_ranges[i][0], param_ranges[i][1])
+            
+            if child[i] < 0:
+                child[i] = 1e-9 
              
     return child
 
@@ -377,11 +380,7 @@ def genetic_algorithm():
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
 
-            # Only add valid children
-            if all(param_ranges[i][0] <= child1[i] <= param_ranges[i][1] for i in range(len(child1))):
-                children.append(child1)
-            if all(param_ranges[i][0] <= child2[i] <= param_ranges[i][1] for i in range(len(child2))):
-                children.append(child2)
+           
 
         population = parents + children[:population_size - len(parents)]
 
@@ -390,57 +389,7 @@ def genetic_algorithm():
 
 
 
-
-# def genetic_algorithm():
-#     th_range = (th_min, th_max)
-#     dmin_range = (dmin_min, dmin_max)
-#     lamb_range = (lamb_min, lamb_max)  
-    
-#     # Define parameter ranges
-#     param_ranges = [th_range, dmin_range, lamb_range]
-
-#     # Initialize population
-#     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
-    
-#     best_error = float('inf')
-#     best_individual = None
-#     best_metrics = None
-
-#     for generation in range(num_generations):
-#         # Evaluate fitness
-#         fitness_values = [fitness(individual) for individual in population]
-#         population_sorted = sorted(zip(population, fitness_values), key=lambda x: x[1][0], reverse=True)
-#         population = [ind for ind, _ in population_sorted]
-
-#         # Update best individual if a better one is found
-#         current_best_error = population_sorted[0][1][1]['Total Difference']
-
-#         if current_best_error < best_error:
-#             best_error = current_best_error
-#             best_individual = population_sorted[0][0]
-#             best_metrics = population_sorted[0][1][1]
-
-#         # Parent selection
-#         parents = population[:len(population) // 2]
-#         children = []
-
-#         while len(children) < (population_size - len(parents)):
-#             parent1, parent2 = random.sample(parents, 2)
-#             child1, child2 = crossover(parent1, parent2, param_ranges)
-#             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
-
-
-#             # Only add valid children
-#             # if all(param_ranges[i][0] <= child1[i] <= param_ranges[i][1] for i in range(len(child1))):
-#             #     children.append(child1)
-#             # if all(param_ranges[i][0] <= child2[i] <= param_ranges[i][1] for i in range(len(child2))):
-#             #     children.append(child2)
-
-
-#         population = parents + children[:population_size - len(parents)]
-
-#     return best_individual, best_error, best_metrics
-
+ 
  
 
 

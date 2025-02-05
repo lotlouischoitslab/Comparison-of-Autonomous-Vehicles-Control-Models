@@ -401,8 +401,8 @@ def genetic_algorithm():
         children = []
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
-            child1, child2 = crossover(parent1, parent2)
-            children.extend([mutate(child1), mutate(child2)])
+            child1, child2 = crossover(parent1, parent2, param_ranges)
+            children.extend([mutate(child1,param_ranges), mutate(child2,param_ranges)])
         population = parents + children[:population_size - len(parents)]
     
     #return the best individual, best error, and best error metrics after all generations
