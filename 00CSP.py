@@ -84,20 +84,12 @@ print(I294l2_A)
 
 
 ####################### SIMULATION PARAMETERS ##########################################################
-population_size = 40  # Keep as is (sufficient for convergence)
+population_size = 100  # Keep as is (sufficient for convergence)
 num_generations = 100  # Increase for better tuning
 mutation_rate = 0.1  # Reduce mutation rate for better stability
-delta = 0.1  # Smaller mutation step to refine tuning
-accl_min = -5  # More realistic braking limit
-accl_max = 3 # Prevent excessive acceleration
-kp_min = 0.001 # Reduce from 3 to allow smoother position control
-kp_max = 2.0  # Upper limit to prevent excessive reaction
+ 
 
-kv_min = 0.001  # Reduce speed correction term for smoother response
-kv_max = 5.0  # Keep max value lower to avoid overcompensation
-
-S_desired_min = 4
-S_desired_max = 6
+  
 most_leading_leader_id = None   
 #################################################################################################################
 
@@ -146,7 +138,7 @@ def find_leader_data(df, follower_id, run_index):
  
     return leader_df
  
-
+ 
 
 
 
@@ -190,57 +182,39 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
  
 
+ 
+ 
+
+def acceleration_calculator(vehicle, kv, kp, S_desired):    
+    inter_vehicle_spacing = vehicle['gap'] 
+
+    if inter_vehicle_spacing >= 30:
+        inter_vehicle_spacing = 30
   
 
- 
+    gap_error = inter_vehicle_spacing - S_desired   # Ensure at least 0.5 meters gap 
 
-
-def acceleration_calculator(i, t, vehicle, accl_min, accl_max, kv, kp, S_desired):  
-    """
-    Implements a constant spacing policy using a PD controller and integrates free-flow acceleration.
-
-    Args:
-        i (int): Index of vehicle in the platoon.
-        t (float): Current time step.
-        vehicle (dict): Contains 'gap' (distance to lead vehicle), 'deltav' (speed difference), and 'speed' (ego speed).
-        accl_min (float): Minimum allowable acceleration (deceleration limit).
-        accl_max (float): Maximum allowable acceleration.
-        kv (float): Derivative gain for speed control.
-        kp (float): Proportional gain for gap control.
-        S_desired (float): Desired constant spacing distance.
-        v_desired (float): Desired free-flow velocity.
-
-    Returns:
-        float: Calculated acceleration with free-flow adjustment.
-    """
-    # Compute acceleration using PD controller to maintain spacing (Car-Following Model)
-    gap_error = vehicle['gap'] + S_desired
     speed_error = vehicle['deltav']
+    
+    accl_cf =  (kv * speed_error + kp * gap_error)  # PD-based car-following acceleration
+  
+    # Limit acceleration to prevent instability
+    if accl_cf > 3:
+        accl_cf = 3
+    elif accl_cf < -8:
+        accl_cf = -8  
 
-    accl_cf = - (kv * speed_error + kp * gap_error)  # Car-following acceleration
- 
-    accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds   
     return accl_cf
 
 
 
 
+
 def simulate_car_following(params):
+    global kv, kp, S_desired
     kv, kp, S_desired = params   
 
-
-    """
-    Simulates a vehicle following a lead car using a constant spacing policy.
-    
-    Args:
-        params (tuple): Contains simulation parameters.
-        kv (float): Proportional gain for maintaining rel vel. 
-        kp (float): Proportional gain for maintaining spacing. 
-         
-    
-    Returns:
-        tuple: position, speed, and acceleration arrays.
-    """ 
+ 
     
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -251,30 +225,33 @@ def simulate_car_following(params):
     
     position[0] = sdf.iloc[0][pos]
     speed[0] = sdf.iloc[0]['speed_kf']
+    acl[0] = 0
     
     for i in range(1, num_steps):
         dt = time_step
+        desired_position = position[i - 1] + speed[i - 1] * dt
+
         vehicle_state = {
-            'gap':  position[i-1] - target_position[i-1],
-            'deltav': speed[i - 1] - target_speed[i-1],
-            'speed': speed[i - 1]
+            'gap':  leader_position[i-1] - position[i-1],
+            'deltav': leader_speed[i-1] - speed[i-1],
+            'speed': speed[i - 1] 
         }
 
         # Compute acceleration using the constant spacing policy
-        acceleration = acceleration_calculator(i, time[i], vehicle_state,accl_min, accl_max, kv, kp, S_desired)
+        acceleration = acceleration_calculator(vehicle_state, kv, kp, S_desired)
 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
         position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration * (dt ** 2)
+
+        # print('sim speed',speed[i], 'actual speed',target_speed[i])
         
     return position, speed, acl
 
  
 
- 
 
 
- 
 def fitness(params):
     sim_position, sim_speed, acl = simulate_car_following(params)
 
@@ -282,8 +259,8 @@ def fitness(params):
     diff_speed = np.array(sim_speed) -  np.array(target_speed)
 
     # Calculate errors
-    mse_position = np.mean(diff_position ** 2)
-    mse_speed = np.mean(diff_speed ** 2)
+    mse_position = np.mean(diff_position * diff_position)
+    mse_speed = np.mean(diff_speed * diff_speed)
     mse = (mse_position + mse_speed)/2
 
     rmse_position = np.sqrt(mse_position)
@@ -319,15 +296,15 @@ def fitness(params):
     nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
     nrmse = (nrmse_position + nrmse_speed) / 2
 
-    sse_position = np.sum(diff_position ** 2)
-    sse_speed = np.sum(diff_speed ** 2)
+    sse_position = np.sum(diff_position * diff_position)
+    sse_speed = np.sum(diff_speed * diff_speed)
     sse = sse_position + sse_speed
 
-    ss_res_position = np.sum(diff_position ** 2)
+    ss_res_position = np.sum(diff_position * diff_position)
     ss_tot_position = np.sum((target_position - np.mean(target_position)) ** 2)
     r2_position = 1 - (ss_res_position / ss_tot_position) if ss_tot_position != 0 else 0
 
-    ss_res_speed = np.sum(diff_speed ** 2)
+    ss_res_speed = np.sum(diff_speed * diff_speed)
     ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
     r2_speed = 1 - (ss_res_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
 
@@ -354,8 +331,6 @@ def fitness(params):
 
 
 
-
-
 def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
@@ -370,11 +345,10 @@ def crossover(parent1, parent2, param_ranges):
 def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            child[i] += random.uniform(-delta, delta)
+            child[i] += random.uniform(-0.1, 0.1)
+      
             
-            if child[i] < 0:
-                child[i] = 1e-9
-             
+       
     return child
 
 
@@ -382,10 +356,9 @@ def mutate(child, param_ranges):
 
 def genetic_algorithm(): 
     # Add kv and kp parameter ranges
-    kp_range = (kp_min, kp_max)  # Less aggressive position tracking
-    kv_range = (kv_min, kv_max)   # Stronger speed correction for better tracking
-    S_desired_range = (S_desired_min, S_desired_max)
-
+    kp_range = (0.7, 2)  # Less aggressive position tracking
+    kv_range = (0.5, 1)   # Stronger speed correction for better tracking
+    S_desired_range = (3, 7)
  
     # Define parameter ranges for each parameter 
     param_ranges = [kv_range, kp_range, S_desired_range]
@@ -531,8 +504,7 @@ def format_speed(df):
     return df
 
 
-
-
+ 
 
  
 
@@ -548,12 +520,14 @@ for df_key, df_path in datasets.items():
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
     if df_key == "df395":
-        pos = "yloc_kf"
+        pos = "yloc_kf" 
     else:
         pos = "xloc_kf"
-    
-    if df_key == "df9094":
+        
+    if df_key == "df9094":    
         df = format_speed(df)
+    
+    
 
     for group in groups[df_key]:
         # Define the current group
@@ -576,7 +550,8 @@ for df_key, df_path in datasets.items():
                 time_step, num_steps = 0.1, round(total_time / 0.1)
                 timex = np.linspace(0, total_time, num_steps)
                 leader_position, leader_speed = ldf[pos].tolist(), ldf['speed_kf'].tolist()
-                target_position, target_speed = sdf[pos].tolist(), sdf['speed_kf'].tolist()
+                target_position, target_speed, target_acceleration = sdf[pos].tolist(), sdf['speed_kf'].tolist(), sdf['acceleration_kf'].tolist()
+                
 
                 best_params, best_error, best_metrics = genetic_algorithm()
                 all_params.append(best_params)
