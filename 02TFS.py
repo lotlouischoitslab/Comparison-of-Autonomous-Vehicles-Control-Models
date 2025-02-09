@@ -83,12 +83,11 @@ mutation_rate = 0.1
 delta = 0.1
 
 
+rho_min = 0.10
+rho_max = 0.15
 
-rho_min = 0.05
-rho_max = 0.2
 
-
-lamb_min = 0.3
+lamb_min = 0.2
 lamb_max = 0.6
  
 
