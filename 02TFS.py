@@ -45,7 +45,6 @@ for data_key, data_path in datasets.items():
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
     
-     
 
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I9094_A.append([id_val, run_index_val])
@@ -58,6 +57,7 @@ for data_key, data_path in datasets.items():
         temp_df_run_index = temp_df_av['run_index'].unique()
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l1_A.append([id_val, run_index_val])
+
 
     elif data_key == 'df294l2':
         temp_df['acc'] = temp_df['acc'].str.lower()
@@ -75,24 +75,26 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size = 40
+
+
+population_size = 100
 num_generations = 100
 mutation_rate = 0.1 
 delta = 0.1
-accl_min = -5  # More realistic braking limit
-accl_max = 3  # Prevent excessive acceleration
 
 
-rho_min = 0.1 
-rho_max = 0.3
+
+rho_min = 0.05
+rho_max = 0.2
 
 
-lamb_min = 0.2
-lamb_max = 0.4
+lamb_min = 0.3
+lamb_max = 0.6
  
 
 vf_min = 25
 vf_max = 32
+
   
 
 most_leading_leader_id = None
@@ -183,7 +185,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 
 ## epsilon_dot = inter-vehicle spacing / dt
-def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_min, accl_max, desired_position):
+def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired_position):
     """
     Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
     
@@ -202,16 +204,16 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, accl_mi
     # Extract relevant parameters
     delta_i = vehicle_dict['gap'] + desired_position
     epsilon_dot = vehicle_dict['deltav'] 
-    vi = vehicle_dict['speed']
- 
-    accl_cf = -rho_max * (vf - vi) * (1 - vi / vf) * (epsilon_dot + lambda_var * delta_i)  
-    accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
+    vi = vehicle_dict['speed'] 
+    accl  = -rho_max * (vf - vi) * (1 - vi / vf) * (epsilon_dot + lambda_var * delta_i)   
     return accl
 
 
 
+
+
 def simulate_car_following(params): 
-    rho, lamb,vf = params 
+    rho, lamb, vf = params 
 
 
     num_steps = round(total_time / time_step)
@@ -239,9 +241,7 @@ def simulate_car_following(params):
             'dt': dt
         }
         
-        acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho, vf, lamb, accl_min, accl_max,desired_position) 
-
-
+        acceleration = acceleration_calculator(i, time[i], vehicle_dict, rho, vf, lamb, desired_position) 
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
         position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
@@ -253,92 +253,59 @@ def simulate_car_following(params):
 
  
 def fitness(params):
-    sim_position, sim_speed, acl = simulate_car_following(params)
+    sim_position, sim_speed, sim_accel = simulate_car_following(params) 
+    diff_speed = np.array(sim_speed) - np.array(target_speed)     
+    speed_deviation_penalty = np.sum(np.abs(diff_speed) ** 2)  
 
-    diff_position = np.array(sim_position) - np.array(target_position)
-    diff_speed = np.array(sim_speed) -  np.array(target_speed)
-
-    # Calculate errors
-    mse_position = np.mean(diff_position * diff_position)
-    mse_speed = np.mean(diff_speed * diff_speed)
-    mse = (mse_position + mse_speed)/2
-
-    rmse_position = np.sqrt(mse_position)
-    rmse_speed = np.sqrt(mse_speed)
-    rmse = np.sqrt(mse)
-
-    mae_position = np.mean(np.abs(diff_position))
-    mae_speed = np.mean(np.abs(diff_speed))
-    mae = mae_position + mae_speed
- 
     
-    # FIX: Avoid division by zero for MAPE calculation
-    valid_position_mask = target_position != 0  # Mask for nonzero values
-    valid_speed_mask = target_speed != 0  # Mask for nonzero values
+    mse_speed = np.mean(diff_speed * diff_speed)
+    rmse_speed = np.sqrt(mse_speed)
+    mae_speed = np.mean(np.abs(diff_speed))
 
-    if np.any(valid_position_mask):  # Ensure there are nonzero values
-        mape_position = np.mean(np.abs(diff_position[valid_position_mask] / target_position[valid_position_mask])) * 100
-    else:
-        mape_position = 0  # If all values are zero, set to 0
 
-    if np.any(valid_speed_mask):
-        mape_speed = np.mean(np.abs(diff_speed[valid_speed_mask] / target_speed[valid_speed_mask])) * 100
-    else:
-        mape_speed = 0  # If all values are zero, set to 0
 
-    mape = (mape_position + mape_speed) / 2
+    valid_speed_mask = np.array(target_speed) != 0
+    mape_speed = (
+        np.mean(np.abs(diff_speed[valid_speed_mask] / np.array(target_speed)[valid_speed_mask])) * 100 
+        if np.any(valid_speed_mask) 
+        else 0
+    )
 
-    # Normalize RMSE to avoid division by zero
-    pos_range = np.max(target_position) - np.min(target_position)
     speed_range = np.max(target_speed) - np.min(target_speed)
-
-    nrmse_position = rmse_position / (pos_range if pos_range != 0 else 1)
     nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
-    nrmse = (nrmse_position + nrmse_speed) / 2
 
-    sse_position = np.sum(diff_position * diff_position)
     sse_speed = np.sum(diff_speed * diff_speed)
-    sse = sse_position + sse_speed
+    ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) * (target_speed - np.mean(target_speed)))
+    r2_speed = 1 - (sse_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
 
-    ss_res_position = np.sum(diff_position * diff_position)
-    ss_tot_position = np.sum((target_position - np.mean(target_position)) ** 2)
-    r2_position = 1 - (ss_res_position / ss_tot_position) if ss_tot_position != 0 else 0
+    total_diff = np.sum(np.abs(diff_speed))
+    fitness_value = 1.0 / (speed_deviation_penalty + 1e-6)
 
-    ss_res_speed = np.sum(diff_speed * diff_speed)
-    ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
-    r2_speed = 1 - (ss_res_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
-
-    r2 = (r2_position + r2_speed) / 2
-
-    total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
-
-    # Fitness is the inverse of total error to maximize fitness
-    fitness_value = 1.0 / (total_diff + 1e-5)
-
-    # Store all error metrics in a dictionary
+ 
     error_metrics = {
-        'MSE': mse,
-        'RMSE': rmse,
-        'MAE': mae,
-        'MAPE': mape,
-        'NRMSE': nrmse,
-        'SSE': sse,
-        'R-squared': r2,
+        'MSE': mse_speed,
+        'RMSE': rmse_speed,
+        'MAE': mae_speed,
+        'MAPE': mape_speed,
+        'NRMSE': nrmse_speed,
+        'SSE': sse_speed,
+        'R-squared': r2_speed,
         'Total Difference': total_diff
     }
 
-    return fitness_value, error_metrics  # Return fitness and all error metrics
+    return fitness_value, error_metrics
 
  
+
 
 
 def crossover(parent1, parent2, param_ranges):
     crossover_point = random.randint(0, len(parent1) - 1)
     child1 = parent1[:crossover_point] + parent2[crossover_point:]
-    child2 = parent2[:crossover_point] + parent1[crossover_point:]
-
-   
+    child2 = parent2[:crossover_point] + parent1[crossover_point:] 
     return child1, child2
+
+
 
 
 def mutate(child, param_ranges):
@@ -346,6 +313,8 @@ def mutate(child, param_ranges):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-0.1, 0.1)            
     return child
+
+
 
 
 
@@ -394,6 +363,8 @@ def genetic_algorithm():
 
 
 
+
+
 def plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir):
     plt.figure(figsize=(10, 12))
     plt.subplot(2, 1, 1)
@@ -422,14 +393,16 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 
+
+
 def visualize_parameter_distributions(all_params,save_dir,outname):
     param_names = ['rho', 'lamb','vf']
     num_params = len(param_names)
     
-    #convert list of lists into a 2D numpy array for easier column-wise access
+    # convert list of lists into a 2D numpy array for easier column-wise access
     all_params_array = np.array(all_params)
     
-    #histograms for each parameter
+    # histograms for each parameter
     fig, axs = plt.subplots(1, num_params, figsize=(20, 4))
     for i in range(num_params):
         axs[i].hist(all_params_array[:, i], bins=20, color='skyblue', edgecolor='black')
@@ -450,6 +423,8 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_box.png')
     plt.savefig(plot_filename)
+
+
 
 
 
@@ -501,7 +476,7 @@ save_dir = 'Results/02TFS/'
 for df_key, df_path in datasets.items():
     if df_key != 'df294l1':
         continue
-    
+
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)

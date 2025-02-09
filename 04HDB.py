@@ -257,83 +257,52 @@ def simulate_car_following(params):
 
 
 
- 
 def fitness(params):
-    sim_position, sim_speed, acl = simulate_car_following(params)
+    sim_position, sim_speed, sim_accel = simulate_car_following(params) 
+    diff_speed = np.array(sim_speed) - np.array(target_speed)    
 
-    diff_position = np.array(sim_position) - np.array(target_position)
-    diff_speed = np.array(sim_speed) -  np.array(target_speed)
+   
+    speed_deviation_penalty = np.sum(np.abs(diff_speed) ** 2)  
 
-    # Calculate errors
-    mse_position = np.mean(diff_position * diff_position)
-    mse_speed = np.mean(diff_speed * diff_speed)
-    mse = (mse_position + mse_speed)/2
-
-    rmse_position = np.sqrt(mse_position)
-    rmse_speed = np.sqrt(mse_speed)
-    rmse = np.sqrt(mse)
-
-    mae_position = np.mean(np.abs(diff_position))
-    mae_speed = np.mean(np.abs(diff_speed))
-    mae = mae_position + mae_speed
- 
     
-    # FIX: Avoid division by zero for MAPE calculation
-    valid_position_mask = target_position != 0  # Mask for nonzero values
-    valid_speed_mask = target_speed != 0  # Mask for nonzero values
+    mse_speed = np.mean(diff_speed ** 2)
+    rmse_speed = np.sqrt(mse_speed)
+    mae_speed = np.mean(np.abs(diff_speed))
 
-    if np.any(valid_position_mask):  # Ensure there are nonzero values
-        mape_position = np.mean(np.abs(diff_position[valid_position_mask] / target_position[valid_position_mask])) * 100
-    else:
-        mape_position = 0  # If all values are zero, set to 0
 
-    if np.any(valid_speed_mask):
-        mape_speed = np.mean(np.abs(diff_speed[valid_speed_mask] / target_speed[valid_speed_mask])) * 100
-    else:
-        mape_speed = 0  # If all values are zero, set to 0
+    valid_speed_mask = np.array(target_speed) != 0
+    mape_speed = (
+        np.mean(np.abs(diff_speed[valid_speed_mask] / np.array(target_speed)[valid_speed_mask])) * 100 
+        if np.any(valid_speed_mask) 
+        else 0
+    )
 
-    mape = (mape_position + mape_speed) / 2
-
-    # Normalize RMSE to avoid division by zero
-    pos_range = np.max(target_position) - np.min(target_position)
     speed_range = np.max(target_speed) - np.min(target_speed)
-
-    nrmse_position = rmse_position / (pos_range if pos_range != 0 else 1)
     nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
-    nrmse = (nrmse_position + nrmse_speed) / 2
 
-    sse_position = np.sum(diff_position * diff_position)
-    sse_speed = np.sum(diff_speed * diff_speed)
-    sse = sse_position + sse_speed
-
-    ss_res_position = np.sum(diff_position * diff_position)
-    ss_tot_position = np.sum((target_position - np.mean(target_position)) ** 2)
-    r2_position = 1 - (ss_res_position / ss_tot_position) if ss_tot_position != 0 else 0
-
-    ss_res_speed = np.sum(diff_speed * diff_speed)
+    sse_speed = np.sum(diff_speed ** 2)
     ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
-    r2_speed = 1 - (ss_res_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
+    r2_speed = 1 - (sse_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
 
-    r2 = (r2_position + r2_speed) / 2
+    total_diff = np.sum(np.abs(diff_speed))
 
-    total_diff = np.sum(np.abs(diff_position)) + np.sum(np.abs(diff_speed))
+  
+    fitness_value = 1.0 / (speed_deviation_penalty + 1e-6)
 
-    # Fitness is the inverse of total error to maximize fitness
-    fitness_value = 1.0 / (total_diff + 1e-5)
-
-    # Store all error metrics in a dictionary
+ 
     error_metrics = {
-        'MSE': mse,
-        'RMSE': rmse,
-        'MAE': mae,
-        'MAPE': mape,
-        'NRMSE': nrmse,
-        'SSE': sse,
-        'R-squared': r2,
+        'MSE': mse_speed,
+        'RMSE': rmse_speed,
+        'MAE': mae_speed,
+        'MAPE': mape_speed,
+        'NRMSE': nrmse_speed,
+        'SSE': sse_speed,
+        'R-squared': r2_speed,
         'Total Difference': total_diff
     }
 
-    return fitness_value, error_metrics  # Return fitness and all error metrics
+    return fitness_value, error_metrics
+
 
 
 
@@ -353,8 +322,6 @@ def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
             child[i] += random.uniform(-delta, delta)
-            
-           
              
     return child
 
@@ -516,7 +483,7 @@ save_dir = 'Results/04HDB/'
 for df_key, df_path in datasets.items():
     if df_key != 'df294l1':
         continue
-     
+
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
