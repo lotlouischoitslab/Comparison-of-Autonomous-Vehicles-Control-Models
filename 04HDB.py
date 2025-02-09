@@ -258,6 +258,7 @@ def simulate_car_following(params):
 def fitness(params):
     sim_position, sim_speed, sim_accel = simulate_car_following(params) 
     diff_speed = np.array(sim_speed) - np.array(target_speed)     
+    diff_speed = np.clip(diff_speed, -1e6, 1e6)  # Prevent overflow
     speed_deviation_penalty = np.sum(np.abs(diff_speed) * np.abs(diff_speed))  
 
     

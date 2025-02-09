@@ -204,6 +204,10 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired
     delta_i = vehicle_dict['gap'] + desired_position
     epsilon_dot = vehicle_dict['deltav'] 
     vi = vehicle_dict['speed'] 
+
+    delta_i = np.clip(delta_i, -1e3, 1e3)
+    epsilon_dot = np.clip(epsilon_dot, -1e3, 1e3)
+    
     accl  = -rho_max * (vf - vi) * (1 - vi / vf) * (epsilon_dot + lambda_var * delta_i)   
     return accl
 
@@ -254,6 +258,7 @@ def simulate_car_following(params):
 def fitness(params):
     sim_position, sim_speed, sim_accel = simulate_car_following(params) 
     diff_speed = np.array(sim_speed) - np.array(target_speed)     
+    diff_speed = np.clip(diff_speed, -1e6, 1e6)  # Prevent overflow
     speed_deviation_penalty = np.sum(np.abs(diff_speed) ** 2)  
 
     
@@ -357,6 +362,8 @@ def genetic_algorithm():
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
         population = parents + children[:population_size - len(parents)]
+
+
 
     best_individual = [max(value, 1e-6) for value in best_individual]
     return best_individual, best_error, best_metrics
