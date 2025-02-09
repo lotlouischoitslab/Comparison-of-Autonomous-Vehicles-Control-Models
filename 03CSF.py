@@ -211,15 +211,15 @@ def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop):
 
     # Extract relevant parameters
     gap_error = vehicle_dict['gap'] + Dstop
-    ei_dot = vehicle_dict['deltav'] 
+    epsilon_dot = vehicle_dict['deltav'] 
     vi = vehicle_dict['speed']
- 
-    # Compute denominator for acceleration calculation
-    # denominator = max(td - gamma * ji * vi, 0.1)
-    denominator = td - gamma * ji * vi
 
-    # Compute acceleration based on spacing error and relative velocity
-    accl = -(1 / denominator) * (ei_dot + lamb * gap_error)  
+    gap_error = np.clip(gap_error, -1e3, 1e3)
+    epsilon_dot = np.clip(epsilon_dot, -1e3, 1e3)
+  
+    denominator = td - gamma * ji * vi
+ 
+    accl = -(1 / denominator) * (epsilon_dot + lamb * gap_error)  
     return accl
 
 

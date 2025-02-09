@@ -207,7 +207,9 @@ def acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb) :
     speed_error = vehicle_dict['deltav']
     vi = vehicle_dict['speed']
     temp_accl = vehicle_dict['accl']
- 
+
+    gap_error = np.clip(gap_error, -1e3, 1e3)
+    speed_error = np.clip(speed_error, -1e3, 1e3) 
 
     accl = ((1 - ((tau*Th) /Ta))*temp_accl)  + ((tau*speed_error)/Ta) + ((tau*lamb*gap_error)/Ta) 
     return accl
