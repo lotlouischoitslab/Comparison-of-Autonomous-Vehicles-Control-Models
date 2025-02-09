@@ -91,8 +91,8 @@ Ta_min = 3.0
 Ta_max = 6.0 
  
 
-G_min = 0.001
-G_max = 0.01
+G_min = -5
+G_max = 5
 
 
 tau_min = 0.35 # time constant 
@@ -193,14 +193,16 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 def acceleration_calculator(i, vehicle_dict, A, Th, Ta, G, tau, lamb):
     gap_error = vehicle_dict['gap']
-    speed_error = vehicle_dict['deltaR']
+    speed_error = vehicle_dict['Rdot']
     vi = vehicle_dict['speed']
     temp_accl = vehicle_dict['accl']
+
+    Tv = Th + 2*G*vi
  
  
 
     # Compute coefficient safely
-    coeff = 1 - (tau * Th) / Ta
+    coeff = 1 - (tau * Tv) / Ta
 
     # Compute acceleration safely
     accl = (coeff * temp_accl) + ((tau * speed_error) / Ta) + ((tau * lamb * gap_error) / Ta)
@@ -215,61 +217,52 @@ def acceleration_calculator(i, vehicle_dict, A, Th, Ta, G, tau, lamb):
 
 def simulate_car_following(params):
     A, Th, Ta, G, tau, lamb = params
-
-    # g1 = -0.0246 
-    # g2 = 0.0108
-    # G = g1*Th + g2  # curve parameter  
-
-    A = 3 
-    # T = 0.0019 
-
-    
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
-    
+
     position = np.zeros(num_steps)
     speed = np.zeros(num_steps)
     acl = np.zeros(num_steps)
     R_list = np.zeros(num_steps)
-    
+
     position[0] = sdf.iloc[0][pos]
     speed[0] = sdf.iloc[0]['speed_kf']
-    acl[0] = sdf.iloc[0]['speed_kf']/0.1 
+    acl[0] = sdf.iloc[0]['speed_kf'] / 0.1
 
-    R_list[0] = A 
+    R_list[0] = A  
 
+    for i in range(1, num_steps):
+        dt = time_step
+        vh = speed[i - 1]
+ 
 
+        # Compute R safely
+        R = A + Th * vh + G * vh ** 2  
 
-    for i in range(1, num_steps): 
-        dt = time_step 
-        vh = speed[i-1]  
-        
-        R = A + Th*vh + G*vh**2   
-        delta_R = R - R_list[i-1] 
-        epsilon = R -Th*vh - Ta*acl[i]
+        # Update R_list BEFORE computing Rdot
+        prev_R = R_list[i-1]
+        R_list[i] = R  
+        Rdot = (R - prev_R) / dt  
 
-        # if i == 1:
-        #     print(R, delta_R, epsilon)
-        #     break 
+        # Clip Rdot to avoid extreme changes
+        # Rdot = np.clip(Rdot, -5, 5)
 
-   
-    
+        # Compute spacing error
+        epsilon = R - Th * vh - Ta * acl[i]
+ 
 
-        vehicle_dict = { 
-            'gap':  epsilon, 
-            'deltaR':delta_R,
+        vehicle_dict = {
+            'gap': epsilon,
+            'Rdot': Rdot,
             'speed': speed[i - 1],
-            'accl': acl[i-1]
+            'accl': acl[i - 1]
         }
 
-
-        
-        acceleration = acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb)  
-        speed[i] = speed[i - 1] + acceleration * dt
-        position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
-        R_list[i] = R_list[i-1]
+        acceleration = acceleration_calculator(i, vehicle_dict, A, Th, Ta, G, tau, lamb)
         acl[i] = acceleration
-        
+        speed[i] = speed[i - 1] + acceleration * dt
+        position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration * (dt ** 2)
+
     return position, speed, acl
 
 
@@ -280,8 +273,7 @@ def simulate_car_following(params):
 
 def fitness(params):
     sim_position, sim_speed, sim_accel = simulate_car_following(params) 
-    diff_speed = np.array(sim_speed) - np.array(target_speed)     
-    diff_speed = np.clip(diff_speed, -1e6, 1e6)  # Prevent overflow
+    diff_speed = np.array(sim_speed) - np.array(target_speed)      
     speed_deviation_penalty = np.sum(np.abs(diff_speed) * np.abs(diff_speed))  
 
     
