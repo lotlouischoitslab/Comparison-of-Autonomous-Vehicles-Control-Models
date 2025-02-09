@@ -80,27 +80,30 @@ num_generations = 100
 mutation_rate = 0.1
 delta = 0.1 
 
-A_min = 5 
-A_max = 9
 
-Th_min = 3.0 
-Th_max = 6.0 
+A_min = 3
+A_max = 5
 
-Ta_min = 3
-Ta_max = 6
+Th_min = 2.0 
+Th_max = 5.0  
 
-G_min = -8.0 
-G_max = 8.0
+Ta_min = 3.0
+Ta_max = 6.0 
+ 
 
-tau_min = 0.5 
-tau_max = 1.5
-
-lamb_min = 0.3
-lamb_max = 1.0
+G_min = 0.001
+G_max = 0.01
 
 
-most_leading_leader_id = None
+tau_min = 0.35 # time constant 
+tau_max = 0.5 
 
+
+lamb_min = 0.5
+lamb_max = 1.5
+
+
+most_leading_leader_id = None 
 
 def find_leader_data(df, follower_id, run_index):
     global most_leading_leader_id
@@ -114,7 +117,7 @@ def find_leader_data(df, follower_id, run_index):
         follower_lane = row['lane_kf']
         run_index = row['run_index']
 
-        # find the leader
+        #find the leader
         leader_data = df[(df['id'] != follower_id) & (df['time'] == time) & (df['lane_kf'] == follower_lane) & (df[pos] > follower_x) & (df['run_index'] == run_index)]
         
         if not leader_data.empty:
@@ -131,8 +134,6 @@ def find_leader_data(df, follower_id, run_index):
             leader_data_dict[leader_id]['x_val'].append(leader_x_val)
             leader_data_dict[leader_id]['speed_val'].append(leader_speed_val)
 
-
-
     if leader_data_dict:
         most_leading_leader_id = max(leader_data_dict, key=lambda x: len(leader_data_dict[x]['time']))
         leader_data = leader_data_dict[most_leading_leader_id]
@@ -144,8 +145,9 @@ def find_leader_data(df, follower_id, run_index):
     else:
         leader_df = pd.DataFrame(columns=['id', 'time', pos, 'speed_kf', 'run_index'])
     
- 
     return leader_df
+
+
 
 def extract_subject_and_leader_data(df, follower_id, run_index):
     sdf = df[(df['id'] == follower_id) & (df['run_index'] == run_index)].round(2)
@@ -187,37 +189,40 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 
 
-def acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb) :
-    """
-    Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
-    
-    Parameters:
-        i (int): Index of the vehicle in consideration.
-        t (float): Current time step.
-        vehicle_dict (dict): Dictionary containing vehicle states.
-        rho_max (float): Maximum traffic density (vehicles per kilometer).
-        v_f (float): Free-flow speed (meters per second).
-        lambda_var (float): Control gain for spacing error.
 
-    Returns:
-        float: Computed acceleration.
-    """
-    # Extract relevant parameters 
-    gap_error = vehicle_dict['gap']  
-    speed_error = vehicle_dict['deltav']
+
+def acceleration_calculator(i, vehicle_dict, A, Th, Ta, G, tau, lamb):
+    gap_error = vehicle_dict['gap']
+    speed_error = vehicle_dict['deltaR']
     vi = vehicle_dict['speed']
     temp_accl = vehicle_dict['accl']
+ 
+ 
 
-    gap_error = np.clip(gap_error, -1e3, 1e3)
-    speed_error = np.clip(speed_error, -1e3, 1e3) 
+    # Compute coefficient safely
+    coeff = 1 - (tau * Th) / Ta
 
-    accl = ((1 - ((tau*Th) /Ta))*temp_accl)  + ((tau*speed_error)/Ta) + ((tau*lamb*gap_error)/Ta) 
+    # Compute acceleration safely
+    accl = (coeff * temp_accl) + ((tau * speed_error) / Ta) + ((tau * lamb * gap_error) / Ta)
+
+ 
+    accl = np.clip(accl,-3,3)
     return accl
+
+
 
 
 
 def simulate_car_following(params):
     A, Th, Ta, G, tau, lamb = params
+
+    # g1 = -0.0246 
+    # g2 = 0.0108
+    # G = g1*Th + g2  # curve parameter  
+
+    A = 3 
+    # T = 0.0019 
+
     
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -225,32 +230,48 @@ def simulate_car_following(params):
     position = np.zeros(num_steps)
     speed = np.zeros(num_steps)
     acl = np.zeros(num_steps)
+    R_list = np.zeros(num_steps)
     
     position[0] = sdf.iloc[0][pos]
     speed[0] = sdf.iloc[0]['speed_kf']
-    acl[0] = 0
+    acl[0] = sdf.iloc[0]['speed_kf']/0.1 
 
-    for i in range(1, num_steps):
+    R_list[0] = A 
+
+
+
+    for i in range(1, num_steps): 
         dt = time_step 
         vh = speed[i-1]  
-        R = A + Th*vh + G*vh**2 
+        
+        R = A + Th*vh + G*vh**2   
+        delta_R = R - R_list[i-1] 
         epsilon = R -Th*vh - Ta*acl[i]
+
+        # if i == 1:
+        #     print(R, delta_R, epsilon)
+        #     break 
+
+   
+    
 
         vehicle_dict = { 
             'gap':  epsilon, 
-            'deltav': leader_speed[i - 1] - speed[i - 1],
+            'deltaR':delta_R,
             'speed': speed[i - 1],
             'accl': acl[i-1]
         }
 
 
         
-        acceleration = acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb) 
-        acl[i] = acceleration
+        acceleration = acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb)  
         speed[i] = speed[i - 1] + acceleration * dt
         position[i] = position[i - 1] + speed[i-1] * dt + 0.5 * acceleration * (dt**2)
+        R_list[i] = R_list[i-1]
+        acl[i] = acceleration
         
     return position, speed, acl
+
 
 
 

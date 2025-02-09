@@ -203,11 +203,7 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired
     # Extract relevant parameters
     delta_i = vehicle_dict['gap'] + desired_position
     epsilon_dot = vehicle_dict['deltav'] 
-    vi = vehicle_dict['speed'] 
-
-    delta_i = np.clip(delta_i, -1e3, 1e3)
-    epsilon_dot = np.clip(epsilon_dot, -1e3, 1e3)
-    
+    vi = vehicle_dict['speed']   
     accl  = -rho_max * (vf - vi) * (1 - vi / vf) * (epsilon_dot + lambda_var * delta_i)   
     return accl
 
