@@ -99,7 +99,7 @@ K_min = 1.0   # Reduce safety coefficient
 K_max = 2.0
 
 gamma_min = 0.1  # Reduce braking dynamics coefficient
-gamma_max = 0.4 
+gamma_max = 1.5
 
 
  
@@ -214,8 +214,8 @@ def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop):
     epsilon_dot = vehicle_dict['deltav'] 
     vi = vehicle_dict['speed']
 
-    gap_error = np.clip(gap_error, -1e3, 1e3)
-    epsilon_dot = np.clip(epsilon_dot, -1e3, 1e3)
+    # gap_error = np.clip(gap_error, -1e3, 1e3)
+    # epsilon_dot = np.clip(epsilon_dot, -1e3, 1e3)
   
     denominator = td - gamma * ji * vi
  
@@ -307,9 +307,8 @@ def simulate_car_following(params):
     # Initial conditions
     position[0] = sdf.iloc[0][pos]
     speed[0] = sdf.iloc[0]['speed_kf']
-    acl[0] = 0
-    max_accl = 3
-    ji = acl[0]
+    acl[0] = 0 
+    ji = -7.32 
 
     # Simulation loop
     for i in range(1, num_steps):
@@ -318,14 +317,10 @@ def simulate_car_following(params):
  
         # Calculate stopping distance 
         
-        Dstop = vi**2 / (2 * max_accl)
+        Dstop = -vi**2 / (2 * ji)
         ddes = dmin + td * vi + K * Dstop
 
-   
-
-        # Dynamically calculate j_i
-        ji = acl[:i][acl[:i] < 0].mean() if (acl[:i] < 0).any() else 0
-
+    
  
 
         # Vehicle state dictionary
