@@ -248,8 +248,7 @@ def simulate_car_following(params):
     return position, speed, acl
 
 
-
-
+ 
  
 def fitness(params):
     sim_position, sim_speed, sim_accel = simulate_car_following(params) 
