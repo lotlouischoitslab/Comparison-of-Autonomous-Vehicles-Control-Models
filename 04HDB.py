@@ -75,12 +75,10 @@ print(I9094_A)
 print(I294l1_A)
 print(I294l2_A)
 
-population_size = 40
-num_generations = 80 
+population_size = 100
+num_generations = 100
 mutation_rate = 0.1
-delta = 0.1
-accl_min = -5  # More realistic braking limit
-accl_max = 3  # Prevent excessive acceleration
+delta = 0.1 
 
 A_min = 5 
 A_max = 9
@@ -103,6 +101,7 @@ lamb_max = 1.0
 
 most_leading_leader_id = None
 
+
 def find_leader_data(df, follower_id, run_index):
     global most_leading_leader_id
     
@@ -115,7 +114,7 @@ def find_leader_data(df, follower_id, run_index):
         follower_lane = row['lane_kf']
         run_index = row['run_index']
 
-        #find the leader
+        # find the leader
         leader_data = df[(df['id'] != follower_id) & (df['time'] == time) & (df['lane_kf'] == follower_lane) & (df[pos] > follower_x) & (df['run_index'] == run_index)]
         
         if not leader_data.empty:
@@ -131,6 +130,8 @@ def find_leader_data(df, follower_id, run_index):
             leader_data_dict[leader_id]['time'].append(time)
             leader_data_dict[leader_id]['x_val'].append(leader_x_val)
             leader_data_dict[leader_id]['speed_val'].append(leader_speed_val)
+
+
 
     if leader_data_dict:
         most_leading_leader_id = max(leader_data_dict, key=lambda x: len(leader_data_dict[x]['time']))
@@ -185,6 +186,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 
 
+
 def acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb) :
     """
     Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
@@ -207,11 +209,7 @@ def acceleration_calculator(i, vehicle_dict, A,Th,Ta,G,tau,lamb) :
     temp_accl = vehicle_dict['accl']
  
 
-    accl = ((1 - ((tau*Th) /Ta))*temp_accl)  + ((tau*speed_error)/Ta) + ((tau*lamb*gap_error)/Ta)
-    
-
-    # # Clamp acceleration to realistic limits
-    accl = np.clip(accl, accl_min, accl_max)  # Using acceleration bounds  
+    accl = ((1 - ((tau*Th) /Ta))*temp_accl)  + ((tau*speed_error)/Ta) + ((tau*lamb*gap_error)/Ta) 
     return accl
 
 
@@ -259,13 +257,11 @@ def simulate_car_following(params):
 
 def fitness(params):
     sim_position, sim_speed, sim_accel = simulate_car_following(params) 
-    diff_speed = np.array(sim_speed) - np.array(target_speed)    
-
-   
-    speed_deviation_penalty = np.sum(np.abs(diff_speed) ** 2)  
+    diff_speed = np.array(sim_speed) - np.array(target_speed)     
+    speed_deviation_penalty = np.sum(np.abs(diff_speed) * np.abs(diff_speed))  
 
     
-    mse_speed = np.mean(diff_speed ** 2)
+    mse_speed = np.mean(diff_speed * diff_speed)
     rmse_speed = np.sqrt(mse_speed)
     mae_speed = np.mean(np.abs(diff_speed))
 
@@ -403,6 +399,8 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 
+
+
 def visualize_parameter_distributions(all_params,save_dir,outname):
     param_names = ['A','Th','Ta','G','tau','lamb']
     num_params = len(param_names)
@@ -431,6 +429,7 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_box.png')
     plt.savefig(plot_filename)
+
 
 
 

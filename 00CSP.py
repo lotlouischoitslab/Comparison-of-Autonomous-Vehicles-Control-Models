@@ -314,11 +314,10 @@ def mutate(child, param_ranges):
 
  
 
-def genetic_algorithm(): 
-    # Add kv and kp parameter ranges
-    kp_range = (0.5, 1.0)  # Less aggressive position tracking
-    kv_range = (1.5, 3.0)   # Stronger speed correction for better tracking
-    S_desired_range = (5, 6)
+def genetic_algorithm():  
+    kp_range = (0.01, 0.5)  # Less aggressive position tracking
+    kv_range = (4.0, 9.0)   # Stronger speed correction for better tracking
+    S_desired_range = (4.5, 5.5)
  
     # Define parameter ranges for each parameter 
     param_ranges = [kv_range, kp_range, S_desired_range]
@@ -353,13 +352,15 @@ def genetic_algorithm():
             parent1, parent2 = random.sample(parents, 2)
             child1, child2 = crossover(parent1, parent2, param_ranges)
             children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
-
  
 
         population = parents + children[:population_size - len(parents)]
-
-    # Return best parameters and performance metrics
+ 
+ 
+    best_individual = [max(value, 1e-6) for value in best_individual]
     return best_individual, best_error, best_metrics
+
+
 
 
 
