@@ -85,10 +85,10 @@ mutation_rate = 0.1  # Reduce mutation rate for better stability
  
 th_min = 1.5
 th_max = 3.0
-dmin_min = 2
+dmin_min = 3.0
 dmin_max = 3.5
-lamb_min = 0.1
-lamb_max = 0.5
+lamb_min = 0.00001
+lamb_max = 0.0001
 most_leading_leader_id = None
 #################################################################################################################
  
@@ -350,6 +350,7 @@ def genetic_algorithm():
         population = parents + children[:population_size - len(parents)]
 
     # Return best parameters and performance metrics
+    best_individual = [max(value, 1e-6) for value in best_individual]
     return best_individual, best_error, best_metrics
 
 

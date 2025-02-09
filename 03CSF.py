@@ -465,6 +465,7 @@ def genetic_algorithm():
         population = parents + children[:population_size - len(parents)]
     
     #return the best individual, best error, and best error metrics after all generations
+    best_individual = [max(value, 1e-6) for value in best_individual]
     return best_individual, best_error, best_metrics
 
 
