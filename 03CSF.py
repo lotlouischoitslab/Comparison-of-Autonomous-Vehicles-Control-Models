@@ -79,19 +79,16 @@ print(I294l2_A)
 
 
 
-population_size = 40
+population_size = 100
 num_generations = 100 
 mutation_rate = 0.1
-delta = 0.1
-accl_min = -5  # More realistic braking limit
-accl_max = 3  # Prevent excessive acceleration
-
-
+delta = 0.1 
+ 
 
 dmin_min = 2.5
 dmin_max = 3.5   
 
-td_min = 0.01 # Delay Time min
+td_min = 0.05 # Delay Time min
 td_max = 0.10 # Delay Time max
 
 
@@ -101,8 +98,8 @@ lamb_max = 0.4
 K_min = 1.0   # Reduce safety coefficient
 K_max = 4.0
 
-gamma_min = 2.0  # Reduce braking dynamics coefficient
-gamma_max = 4.0
+gamma_min = 0.1  # Reduce braking dynamics coefficient
+gamma_max = 0.5 
 
 
  
@@ -191,7 +188,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
         return sdf, ldf
 
 
-def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, accl_min, accl_max):
+def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop):
     """
     Calculate desired acceleration for a vehicle using the Constant Safety Factor (CSF) Spacing Policy.
     
@@ -218,13 +215,13 @@ def acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, a
     vi = vehicle_dict['speed']
  
     # Compute denominator for acceleration calculation
-    denominator = max(td - gamma * ji * vi, 1e-4)
+    # denominator = max(td - gamma * ji * vi, 0.1)
+    denominator = td - gamma * ji * vi
 
- 
     # Compute acceleration based on spacing error and relative velocity
-    accl_cf = -(1 / denominator) * (ei_dot + lamb * gap_error) 
-    accl = np.clip(accl_cf, accl_min, accl_max)  # Using acceleration bounds  
+    accl = -(1 / denominator) * (ei_dot + lamb * gap_error)  
     return accl
+
 
 
 
@@ -318,7 +315,7 @@ def simulate_car_following(params):
         vi = speed[i - 1] 
  
         # Calculate stopping distance 
-        max_accl = accl_max
+        max_accl = 3
         Dstop = vi**2 / (2 * max_accl)
         ddes = dmin + td * vi + K * Dstop
 
@@ -340,7 +337,7 @@ def simulate_car_following(params):
             'speed': speed[i - 1]
         }
         
-        acceleration = acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb,gamma,ji,Dstop, accl_min, accl_max) 
+        acceleration = acceleration_calculator(i, vehicle_dict, dmin, td, K, lamb, gamma, ji, Dstop) 
 
         # Update state variables
         acl[i] = acceleration
@@ -547,6 +544,7 @@ for df_key, df_path in datasets.items():
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
+
     if df_key == "df395":
         pos = "yloc_kf"
     else:
