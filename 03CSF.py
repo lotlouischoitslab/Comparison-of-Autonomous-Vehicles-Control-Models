@@ -525,7 +525,7 @@ save_dir = 'Results/03CSF/'
 
 #iterate through each dataset and group
 for df_key, df_path in datasets.items():
-    if df_key != 'df294l1':
+    if df_key == 'df395' or df_key == 'df294l2':
         continue
 
     df = pd.read_csv(df_path)
