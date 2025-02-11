@@ -8,45 +8,33 @@ import os
  
 
 
-datasets = {
-"df395": "TGSIM/I395_Trajectories.csv",
+datasets = { 
 "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
-"df294l1": "TGSIM/I294_L1_Trajectories.csv",
-"df294l2": "TGSIM/I294_L2_Trajectories.csv",
-# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
+"df294l1": "TGSIM/I294_L1_Trajectories.csv", 
+
 # "dfphoenix": "TGSIM/run3_trajectories_smoothed.csv",
+#"dfphoenix": "TGSIM/run7_Trajectories_smoothed.csv",
+# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
 "dfphoenix": "TGSIM/run9_NS_Trajectories_smoothed.csv",
 }
 
  
 
-groups = {
-    "df395": ["I395_A"],
+groups = { 
     "df9094": ["I9094_A"],
-    "df294l1": ["I294l1_A"],
-    "df294l2": ["I294l2_A"],
+    "df294l1": ["I294l1_A"], 
     "dfphoenix": ["Phoenix_A"]
     }
 
 
-I395_A, I9094_A, I294l1_A, I294l2_A, Phoenix_A = [], [], [], [], []
+I9094_A, I294l1_A, Phoenix_A = [], [], []
+
 
 
 for data_key, data_path in datasets.items():
-    temp_df = pd.read_csv(data_path) 
- 
+    temp_df = pd.read_csv(data_path)  
 
-    if data_key == 'df395': 
-        temp_df_av = temp_df[temp_df['type_most_common'] == 4]
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].values[0]
-
-
-        for id_val in temp_df_id:
-            I395_A.append([id_val,temp_df_run_index])
-
-
-    elif data_key == 'df9094':
+    if data_key == 'df9094':
         temp_df_av = temp_df[temp_df['av'] == 'yes']
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
@@ -66,17 +54,7 @@ for data_key, data_path in datasets.items():
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l1_A.append([id_val, run_index_val])
 
-
-    elif data_key == 'df294l2':
-        temp_df['acc'] = temp_df['acc'].str.lower()
-        temp_df_av = temp_df[temp_df['acc'] == 'yes']
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].unique()
-
-
-        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
-            I294l2_A.append([id_val, run_index_val])
-
+ 
 
     elif data_key == 'dfphoenix': 
         temp_df_id = temp_df['id'].unique() 
@@ -86,17 +64,14 @@ for data_key, data_path in datasets.items():
         for id_val in temp_df_id:
             Phoenix_A.append([id_val, 1])
 
+ 
 
-# print(I395_A)
-# print(I9094_A)
-# print(I294l1_A)
-print(I294l2_A)
+
+print(I9094_A)
+print(I294l1_A) 
 print(Phoenix_A)
 
-
-
-
-
+ 
 
 
 
@@ -202,12 +177,13 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 def acceleration_calculator(vehicle, kv, kp, S_desired):    
     inter_vehicle_spacing = vehicle['gap']  
 
-    gap_error = inter_vehicle_spacing - S_desired   # Ensure at least 0.5 meters gap 
+    gap_error = inter_vehicle_spacing + S_desired   # Ensure at least 0.5 meters gap 
 
     speed_error = vehicle['deltav']
     
-    accl_cf =  (kv * speed_error + kp * gap_error)  # PD-based car-following acceleration 
+    accl_cf =  -(kv * speed_error + kp * gap_error)  # PD-based car-following acceleration 
 
+   
     return accl_cf
 
 
@@ -228,20 +204,20 @@ def simulate_car_following(params):
     acl = np.zeros(num_steps)
     
     position[0] = sdf.iloc[0][pos]
-    speed[0] = sdf.iloc[0]['speed_kf']
-    acl[0] = 0
+    speed[0] = sdf.iloc[0]['speed_kf'] 
+    
     
     for i in range(1, num_steps):
         dt = time_step
         desired_position = position[i - 1] + speed[i - 1] * dt
 
         vehicle_state = {
-            'gap':  leader_position[i-1] - position[i-1],
-            'deltav': leader_speed[i-1] - speed[i-1],
+            'gap':  position[i-1] - leader_position[i-1],
+            'deltav': speed[i-1] - leader_speed[i-1] ,
             'speed': speed[i - 1] 
         }
 
-        # Compute acceleration using the constant spacing policy
+      
         acceleration = acceleration_calculator(vehicle_state, kv, kp, S_desired)
 
         acl[i] = acceleration
@@ -333,7 +309,7 @@ def mutate(child, param_ranges):
 
 def genetic_algorithm():  
     kp_range = (0.01, 0.5)  # Less aggressive position tracking
-    kv_range = (4.0, 9.0)   # Stronger speed correction for better tracking
+    kv_range = (0.1, 0.9)   # Stronger speed correction for better tracking
     S_desired_range = (4.5, 5.5)
  
     # Define parameter ranges for each parameter 
@@ -495,27 +471,20 @@ save_dir = 'Results/00CSP/'
 
 
 #iterate through each dataset and group
-for df_key, df_path in datasets.items(): 
-    if df_key == 'df395' or df_key == 'df294l2' or df_key == 'df294l1' or df_key == 'df9094':
-        continue
-
-    df = pd.read_csv(df_path)
-
-
-
-
+for df_key, df_path in datasets.items():   
+    df = pd.read_csv(df_path) 
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
+
     if df_key == "df395":
         pos = "yloc_kf" 
     else:
         pos = "xloc_kf"
         
-    if df_key == "df9094":    
+    if df_key == "df9094" or df_key == 'dfphoenix':    
         df = format_speed(df)
     
-    
-
+     
 
     for group in groups[df_key]: 
         outname = str("PT_")+str(group)

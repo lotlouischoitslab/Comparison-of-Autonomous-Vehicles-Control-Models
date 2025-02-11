@@ -7,44 +7,32 @@ from scipy.stats import norm
 import os
  
 
-datasets = {
-"df395": "TGSIM/I395_Trajectories.csv",
+datasets = { 
 "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
-"df294l1": "TGSIM/I294_L1_Trajectories.csv",
-"df294l2": "TGSIM/I294_L2_Trajectories.csv",
-# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
+"df294l1": "TGSIM/I294_L1_Trajectories.csv", 
+
 # "dfphoenix": "TGSIM/run3_trajectories_smoothed.csv",
+#"dfphoenix": "TGSIM/run7_Trajectories_smoothed.csv",
+# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
 "dfphoenix": "TGSIM/run9_NS_Trajectories_smoothed.csv",
 }
+
  
 
-groups = {
-    "df395": ["I395_A"],
+groups = { 
     "df9094": ["I9094_A"],
-    "df294l1": ["I294l1_A"],
-    "df294l2": ["I294l2_A"],
+    "df294l1": ["I294l1_A"], 
     "dfphoenix": ["Phoenix_A"]
     }
 
 
-I395_A, I9094_A, I294l1_A, I294l2_A, Phoenix_A = [], [], [], [], []
+I9094_A, I294l1_A, Phoenix_A = [], [], []
 
 
 for data_key, data_path in datasets.items():
-    temp_df = pd.read_csv(data_path) 
- 
+    temp_df = pd.read_csv(data_path)  
 
-    if data_key == 'df395': 
-        temp_df_av = temp_df[temp_df['type_most_common'] == 4]
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].values[0]
-
-
-        for id_val in temp_df_id:
-            I395_A.append([id_val,temp_df_run_index])
-
-
-    elif data_key == 'df9094':
+    if data_key == 'df9094':
         temp_df_av = temp_df[temp_df['av'] == 'yes']
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
@@ -64,17 +52,7 @@ for data_key, data_path in datasets.items():
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l1_A.append([id_val, run_index_val])
 
-
-    elif data_key == 'df294l2':
-        temp_df['acc'] = temp_df['acc'].str.lower()
-        temp_df_av = temp_df[temp_df['acc'] == 'yes']
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].unique()
-
-
-        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
-            I294l2_A.append([id_val, run_index_val])
-
+ 
 
     elif data_key == 'dfphoenix': 
         temp_df_id = temp_df['id'].unique() 
@@ -85,10 +63,10 @@ for data_key, data_path in datasets.items():
             Phoenix_A.append([id_val, 1])
 
 
-# print(I395_A)
-# print(I9094_A)
-# print(I294l1_A)
-print(I294l2_A)
+
+
+print(I9094_A)
+print(I294l1_A) 
 print(Phoenix_A)
 
 
@@ -200,30 +178,8 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 
 
+ 
 
-## epsilon_dot = inter-vehicle spacing / dt
-# def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired_position):
-#     """
-#     Calculate desired acceleration for a vehicle using the Traffic Flow Stability (TFS) Spacing Policy.
-    
-#     Parameters:
-#         i (int): Index of the vehicle in consideration.
-#         t (float): Current time step.
-#         vehicle_dict (dict): Dictionary containing vehicle states.
-#         rho_max (float): Maximum traffic density (vehicles per kilometer).
-#         v_f (float): Free-flow speed (meters per second).
-#         lambda_var (float): Control gain for spacing error.
-
-#     Returns:
-#         float: Computed acceleration.
-#     """ 
-    
-#     # Extract relevant parameters
-#     delta_i = vehicle_dict['gap'] + desired_position
-#     epsilon_dot = vehicle_dict['deltav'] 
-#     vi = vehicle_dict['speed']   
-#     accl  = -rho_max * (vf - vi) * (1 - vi / vf) * (epsilon_dot + lambda_var * delta_i)   
-#     return accl
 
 def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired_position):
     delta_i = vehicle_dict['gap'] + desired_position
@@ -233,8 +189,10 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired
     accl = -rho_max * (vf - vi) * (1 - vi / max(vf, 1e-6)) * (epsilon_dot + lambda_var * delta_i)
 
     # Clamp acceleration to avoid extreme values
-    accl = np.clip(accl, -10, 10)  # Adjust the range as necessary
+    accl = np.clip(accl, -10, 5)  # Adjust the range as necessary
     return accl
+
+
 
 
 
@@ -242,6 +200,7 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired
 def simulate_car_following(params): 
     rho, lamb, vf = params 
 
+ 
 
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -498,15 +457,13 @@ def format_speed(df):
  
 
 
-#Save directory for plots
+# Save directory for plots
 save_dir = 'Results/02TFS/'
 
+
+
 #iterate through each dataset and group
-for df_key, df_path in datasets.items():
-    # if df_key == 'df395' or df_key == 'df294l2' or df_key == 'df294l1' or df_key == 'df9094':
-    #     continue
-    if df_key == 'df395' or df_key == 'df294l2':
-        continue
+for df_key, df_path in datasets.items(): 
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
@@ -516,7 +473,7 @@ for df_key, df_path in datasets.items():
     else:
         pos = "xloc_kf"
 
-    if df_key == "df9094":
+    if df_key == "df9094" or df_key == 'dfphoenix':    
         df = format_speed(df)
 
         

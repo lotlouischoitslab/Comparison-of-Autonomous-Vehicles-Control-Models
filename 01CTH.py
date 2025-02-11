@@ -7,45 +7,32 @@ from scipy.stats import norm
 import os
  
 
-datasets = {
-"df395": "TGSIM/I395_Trajectories.csv",
+datasets = { 
 "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
-"df294l1": "TGSIM/I294_L1_Trajectories.csv",
-"df294l2": "TGSIM/I294_L2_Trajectories.csv",
-# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
+"df294l1": "TGSIM/I294_L1_Trajectories.csv", 
+
 # "dfphoenix": "TGSIM/run3_trajectories_smoothed.csv",
+#"dfphoenix": "TGSIM/run7_Trajectories_smoothed.csv",
+# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
 "dfphoenix": "TGSIM/run9_NS_Trajectories_smoothed.csv",
 }
 
  
 
-groups = {
-    "df395": ["I395_A"],
+groups = { 
     "df9094": ["I9094_A"],
-    "df294l1": ["I294l1_A"],
-    "df294l2": ["I294l2_A"],
+    "df294l1": ["I294l1_A"], 
     "dfphoenix": ["Phoenix_A"]
     }
 
 
-I395_A, I9094_A, I294l1_A, I294l2_A, Phoenix_A = [], [], [], [], []
+I9094_A, I294l1_A, Phoenix_A = [], [], []
 
 
 for data_key, data_path in datasets.items():
-    temp_df = pd.read_csv(data_path) 
- 
+    temp_df = pd.read_csv(data_path)  
 
-    if data_key == 'df395': 
-        temp_df_av = temp_df[temp_df['type_most_common'] == 4]
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].values[0]
-
-
-        for id_val in temp_df_id:
-            I395_A.append([id_val,temp_df_run_index])
-
-
-    elif data_key == 'df9094':
+    if data_key == 'df9094':
         temp_df_av = temp_df[temp_df['av'] == 'yes']
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
@@ -65,17 +52,7 @@ for data_key, data_path in datasets.items():
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l1_A.append([id_val, run_index_val])
 
-
-    elif data_key == 'df294l2':
-        temp_df['acc'] = temp_df['acc'].str.lower()
-        temp_df_av = temp_df[temp_df['acc'] == 'yes']
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].unique()
-
-
-        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
-            I294l2_A.append([id_val, run_index_val])
-
+ 
 
     elif data_key == 'dfphoenix': 
         temp_df_id = temp_df['id'].unique() 
@@ -86,10 +63,10 @@ for data_key, data_path in datasets.items():
             Phoenix_A.append([id_val, 1])
 
 
-# print(I395_A)
-# print(I9094_A)
-# print(I294l1_A)
-print(I294l2_A)
+
+
+print(I9094_A)
+print(I294l1_A) 
 print(Phoenix_A)
 
 
@@ -224,7 +201,7 @@ def simulate_car_following(params):
     speed[0] = sdf.iloc[0]['speed_kf']
     acl[0] = 0
 
-    dt = time_step # time step 
+    dt = time_step # time step  
 
     for i in range(1, num_steps):  
         S_desired = time_headway * speed[i - 1] + dmin # Compute desired spacing dynamically for CTH
@@ -484,9 +461,7 @@ def format_speed(df):
 save_dir = 'Results/01CTH/'
 
 #iterate through each dataset and group
-for df_key, df_path in datasets.items():
-    if df_key == 'df395' or df_key == 'df294l2' or df_key == 'df294l1' or df_key == 'df9094':
-        continue
+for df_key, df_path in datasets.items(): 
 
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
@@ -496,7 +471,7 @@ for df_key, df_path in datasets.items():
     else:
         pos = "xloc_kf"
 
-    if df_key == "df9094":
+    if df_key == "df9094" or df_key == 'dfphoenix':    
         df = format_speed(df)
 
     for group in groups[df_key]:
