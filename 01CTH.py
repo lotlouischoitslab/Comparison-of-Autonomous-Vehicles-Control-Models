@@ -7,24 +7,28 @@ from scipy.stats import norm
 import os
  
 
-
 datasets = {
 "df395": "TGSIM/I395_Trajectories.csv",
 "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
 "df294l1": "TGSIM/I294_L1_Trajectories.csv",
-"df294l2": "TGSIM/I294_L2_Trajectories.csv"
+"df294l2": "TGSIM/I294_L2_Trajectories.csv",
+# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
+# "dfphoenix": "TGSIM/run3_trajectories_smoothed.csv",
+"dfphoenix": "TGSIM/run9_NS_Trajectories_smoothed.csv",
 }
 
+ 
 
 groups = {
     "df395": ["I395_A"],
     "df9094": ["I9094_A"],
     "df294l1": ["I294l1_A"],
-    "df294l2": ["I294l2_A"]
+    "df294l2": ["I294l2_A"],
+    "dfphoenix": ["Phoenix_A"]
     }
 
 
-I395_A, I9094_A, I294l1_A, I294l2_A = [], [], [], []
+I395_A, I9094_A, I294l1_A, I294l2_A, Phoenix_A = [], [], [], [], []
 
 
 for data_key, data_path in datasets.items():
@@ -46,8 +50,7 @@ for data_key, data_path in datasets.items():
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
     
-     
-
+      
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I9094_A.append([id_val, run_index_val])
 
@@ -57,24 +60,37 @@ for data_key, data_path in datasets.items():
         temp_df_av = temp_df[temp_df['acc'] == 'yes']
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
+
+
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l1_A.append([id_val, run_index_val])
+
 
     elif data_key == 'df294l2':
         temp_df['acc'] = temp_df['acc'].str.lower()
         temp_df_av = temp_df[temp_df['acc'] == 'yes']
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
+
+
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l2_A.append([id_val, run_index_val])
 
 
+    elif data_key == 'dfphoenix': 
+        temp_df_id = temp_df['id'].unique() 
+        print(temp_df_id)
 
 
-print(I395_A)
-print(I9094_A)
-print(I294l1_A)
+        for id_val in temp_df_id:
+            Phoenix_A.append([id_val, 1])
+
+
+# print(I395_A)
+# print(I9094_A)
+# print(I294l1_A)
 print(I294l2_A)
+print(Phoenix_A)
 
 
 ####################### SIMULATION PARAMETERS ##########################################################
@@ -469,7 +485,7 @@ save_dir = 'Results/01CTH/'
 
 #iterate through each dataset and group
 for df_key, df_path in datasets.items():
-    if df_key == 'df395' or df_key == 'df294l2':
+    if df_key == 'df395' or df_key == 'df294l2' or df_key == 'df294l1' or df_key == 'df9094':
         continue
 
     df = pd.read_csv(df_path)

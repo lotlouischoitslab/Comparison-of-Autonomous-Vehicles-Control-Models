@@ -12,7 +12,10 @@ datasets = {
 "df395": "TGSIM/I395_Trajectories.csv",
 "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
 "df294l1": "TGSIM/I294_L1_Trajectories.csv",
-"df294l2": "TGSIM/I294_L2_Trajectories.csv"
+"df294l2": "TGSIM/I294_L2_Trajectories.csv",
+# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
+# "dfphoenix": "TGSIM/run3_trajectories_smoothed.csv",
+"dfphoenix": "TGSIM/run9_NS_Trajectories_smoothed.csv",
 }
 
  
@@ -21,11 +24,12 @@ groups = {
     "df395": ["I395_A"],
     "df9094": ["I9094_A"],
     "df294l1": ["I294l1_A"],
-    "df294l2": ["I294l2_A"]
+    "df294l2": ["I294l2_A"],
+    "dfphoenix": ["Phoenix_A"]
     }
 
 
-I395_A, I9094_A, I294l1_A, I294l2_A = [], [], [], []
+I395_A, I9094_A, I294l1_A, I294l2_A, Phoenix_A = [], [], [], [], []
 
 
 for data_key, data_path in datasets.items():
@@ -74,12 +78,25 @@ for data_key, data_path in datasets.items():
             I294l2_A.append([id_val, run_index_val])
 
 
+    elif data_key == 'dfphoenix': 
+        temp_df_id = temp_df['id'].unique() 
+        print(temp_df_id)
 
 
-print(I395_A)
-print(I9094_A)
-print(I294l1_A)
+        for id_val in temp_df_id:
+            Phoenix_A.append([id_val, 1])
+
+
+# print(I395_A)
+# print(I9094_A)
+# print(I294l1_A)
 print(I294l2_A)
+print(Phoenix_A)
+
+
+
+
+
 
 
 
@@ -479,7 +496,7 @@ save_dir = 'Results/00CSP/'
 
 #iterate through each dataset and group
 for df_key, df_path in datasets.items(): 
-    if df_key == 'df395' or df_key == 'df294l2':
+    if df_key == 'df395' or df_key == 'df294l2' or df_key == 'df294l1' or df_key == 'df9094':
         continue
 
     df = pd.read_csv(df_path)
@@ -499,8 +516,8 @@ for df_key, df_path in datasets.items():
     
     
 
-    for group in groups[df_key]:
-        # Define the current group
+
+    for group in groups[df_key]: 
         outname = str("PT_")+str(group)
         AVs = eval(group)
         all_params = []
