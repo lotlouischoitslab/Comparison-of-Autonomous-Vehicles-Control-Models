@@ -146,12 +146,12 @@ rho_min = 0.10
 rho_max = 0.15
 
 
-lamb_min = 0.2
-lamb_max = 0.6
+lamb_min = 0.1
+lamb_max = 0.4
  
 
 vf_min = 25
-vf_max = 32
+vf_max = 30
 
   
 
@@ -300,16 +300,21 @@ def simulate_car_following(params):
 
  
  
+
+ 
+
+ 
 def fitness(params):
     sim_position, sim_speed, sim_accel = simulate_car_following(params) 
-    diff_speed = np.array(sim_speed) - np.array(target_speed)      
-    speed_deviation_penalty = np.sum(np.abs(diff_speed) *np.abs(diff_speed) )  
+    diff_speed = np.array(sim_speed) - np.array(target_speed)    
+
+   
+    speed_deviation_penalty = np.sum(np.abs(diff_speed) ** 2)  
 
     
-    mse_speed = np.mean(diff_speed * diff_speed)
+    mse_speed = np.mean(diff_speed ** 2)
     rmse_speed = np.sqrt(mse_speed)
     mae_speed = np.mean(np.abs(diff_speed))
-
 
 
     valid_speed_mask = np.array(target_speed) != 0
@@ -322,11 +327,13 @@ def fitness(params):
     speed_range = np.max(target_speed) - np.min(target_speed)
     nrmse_speed = rmse_speed / (speed_range if speed_range != 0 else 1)
 
-    sse_speed = np.sum(diff_speed * diff_speed)
-    ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) * (target_speed - np.mean(target_speed)))
+    sse_speed = np.sum(diff_speed ** 2)
+    ss_tot_speed = np.sum((target_speed - np.mean(target_speed)) ** 2)
     r2_speed = 1 - (sse_speed / ss_tot_speed) if ss_tot_speed != 0 else 0
 
     total_diff = np.sum(np.abs(diff_speed))
+
+  
     fitness_value = 1.0 / (speed_deviation_penalty + 1e-6)
 
  
@@ -342,6 +349,8 @@ def fitness(params):
     }
 
     return fitness_value, error_metrics
+
+
 
  
 
