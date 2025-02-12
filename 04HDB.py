@@ -417,22 +417,27 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
     param_names = ['A','Th','Ta','G','tau','lamb']
     num_params = len(param_names)
     
-    #convert list of lists into a 2D numpy array for easier column-wise access
+    # Convert list of lists into a 2D numpy array
     all_params_array = np.array(all_params)
-    
-    #histograms for each parameter
+
+    # Ensure array is 2D (even if all_params is 1D)
+    if all_params_array.ndim == 1:
+        all_params_array = all_params_array.reshape(-1, num_params)
+
+    # Create histograms for each parameter
     fig, axs = plt.subplots(1, num_params, figsize=(20, 4))
+
     for i in range(num_params):
         axs[i].hist(all_params_array[:, i], bins=20, color='skyblue', edgecolor='black')
         axs[i].set_title(param_names[i])
         axs[i].set_xlabel('Value')
         axs[i].set_ylabel('Frequency')
-    
+
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_hist.png')
     plt.savefig(plot_filename)
 
-    #create box plots for each parameter
+    # Create box plots for each parameter
     plt.figure(figsize=(10, 6))
     plt.boxplot(all_params_array, labels=param_names, patch_artist=True)
     plt.title('Distribution of PT Model Parameters')

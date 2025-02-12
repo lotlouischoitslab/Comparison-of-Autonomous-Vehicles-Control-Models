@@ -7,40 +7,93 @@ from scipy.stats import norm
 import os
  
 
-datasets = { 
-"df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
-"df294l1": "TGSIM/I294_L1_Trajectories.csv", 
-
-# "dfphoenix": "TGSIM/run3_trajectories_smoothed.csv",
-#"dfphoenix": "TGSIM/run7_Trajectories_smoothed.csv",
-# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
-"dfphoenix": "TGSIM/run9_NS_Trajectories_smoothed.csv",
-}
-
+# Phoenix Dataset: https://drive.google.com/drive/folders/1FMLA77VUjdAaS0GXRjvVg4S3rg4IANDz 
  
 
-groups = { 
+# Define dataset file paths
+
+datasets = {
+    "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
+    "df294l1": "TGSIM/I294_L1_Trajectories.csv",
+
+    # "dfphoenixh2a5_run1": "TGSIM/H2A5_run1_Y_W_decrease.csv",
+    "dfphoenixh2a5_run2": "TGSIM/H2A5_run2_X_S_increase.csv",
+    # "dfphoenixh2a5_run3": "TGSIM/H2A5_run3_Y_W_decrease.csv",
+    # "dfphoenixh2a5_run4": "TGSIM/H2A5_run4_Y_W_decrease.csv",
+    # "dfphoenixh2a5_run5": "TGSIM/H2A5_run5_X_N_decrease.csv",
+    # "dfphoenixh2a5_run6": "TGSIM/H2A5_run6_Y_W_decrease.csv",
+
+    "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",
+    # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
+    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",
+    # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",
+    "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",
+    # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",
+    "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",
+    "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv",
+    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv",
+    "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv",
+}
+
+
+# Define groups to reference the correct separate lists
+groups = {
     "df9094": ["I9094_A"],
-    "df294l1": ["I294l1_A"], 
-    "dfphoenix": ["Phoenix_A"]
-    }
+    "df294l1": ["I294l1_A"],
+
+    # "dfphoenixh2a5_run1": ["Phoenix_H2A5_run1"],
+    "dfphoenixh2a5_run2": ["Phoenix_H2A5_run2"],
+    # "dfphoenixh2a5_run3": ["Phoenix_H2A5_run3"],
+    # "dfphoenixh2a5_run4": ["Phoenix_H2A5_run4"],
+    # "dfphoenixh2a5_run5": ["Phoenix_H2A5_run5"],
+    # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"],
+
+    "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],
+    # "dfphoenixh1a3_run3": ["Phoenix_H1A3_run3"],
+    # "dfphoenixh1a3_run4": ["Phoenix_H1A3_run4"],
+    # "dfphoenixh1a3_run5": ["Phoenix_H1A3_run5"],
+    "dfphoenixh1a3_run6": ["Phoenix_H1A3_run6"],
+    # "dfphoenixh1a3_run7": ["Phoenix_H1A3_run7"],
+    "dfphoenixh1a3_run8NS": ["Phoenix_H1A3_run8NS"],
+    "dfphoenixh1a3_run8EW": ["Phoenix_H1A3_run8EW"],
+    "dfphoenixh1a3_run9NS": ["Phoenix_H1A3_run9NS"],
+    "dfphoenixh1a3_run9ES": ["Phoenix_H1A3_run9ES"],
+}
 
 
-I9094_A, I294l1_A, Phoenix_A = [], [], []
+# Define separate arrays for each dataset
+I9094_A = []
+I294l1_A = []
 
+Phoenix_H2A5_run1 = []
+Phoenix_H2A5_run2 = []
+Phoenix_H2A5_run3 = []
+Phoenix_H2A5_run4 = []
+Phoenix_H2A5_run5 = []
+Phoenix_H2A5_run6 = []
 
+Phoenix_H1A3_run1 = []
+Phoenix_H1A3_run3 = []
+Phoenix_H1A3_run4 = []
+Phoenix_H1A3_run5 = []
+Phoenix_H1A3_run6 = []
+Phoenix_H1A3_run7 = []
+Phoenix_H1A3_run8NS = []
+Phoenix_H1A3_run8EW = []
+Phoenix_H1A3_run9NS = []
+Phoenix_H1A3_run9ES = []
+
+# Iterate through datasets and populate lists
 for data_key, data_path in datasets.items():
-    temp_df = pd.read_csv(data_path)  
+    temp_df = pd.read_csv(data_path)
 
     if data_key == 'df9094':
         temp_df_av = temp_df[temp_df['av'] == 'yes']
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
-    
-      
+        
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I9094_A.append([id_val, run_index_val])
-
 
     elif data_key == 'df294l1':
         temp_df['acc'] = temp_df['acc'].str.lower()
@@ -48,26 +101,37 @@ for data_key, data_path in datasets.items():
         temp_df_id = temp_df_av['id'].unique()
         temp_df_run_index = temp_df_av['run_index'].unique()
 
-
         for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
             I294l1_A.append([id_val, run_index_val])
 
- 
+    else:
+        temp_df_av = temp_df[temp_df['vehicle-type'] == 'A'].drop_duplicates()
+        temp_df_id = temp_df_av['id'].unique()
 
-    elif data_key == 'dfphoenix': 
-        temp_df_id = temp_df['id'].unique() 
-        print(temp_df_id)
+        dataset_map = {
+            "dfphoenixh2a5_run1": Phoenix_H2A5_run1,
+            "dfphoenixh2a5_run2": Phoenix_H2A5_run2,
+            "dfphoenixh2a5_run3": Phoenix_H2A5_run3,
+            "dfphoenixh2a5_run4": Phoenix_H2A5_run4,
+            "dfphoenixh2a5_run5": Phoenix_H2A5_run5,
+            "dfphoenixh2a5_run6": Phoenix_H2A5_run6,
+            "dfphoenixh1a3_run1": Phoenix_H1A3_run1,
+            "dfphoenixh1a3_run3": Phoenix_H1A3_run3,
+            "dfphoenixh1a3_run4": Phoenix_H1A3_run4,
+            "dfphoenixh1a3_run5": Phoenix_H1A3_run5,
+            "dfphoenixh1a3_run6": Phoenix_H1A3_run6,
+            "dfphoenixh1a3_run7": Phoenix_H1A3_run7,
+            "dfphoenixh1a3_run8NS": Phoenix_H1A3_run8NS,
+            "dfphoenixh1a3_run8EW": Phoenix_H1A3_run8EW,
+            "dfphoenixh1a3_run9NS": Phoenix_H1A3_run9NS,
+            "dfphoenixh1a3_run9ES": Phoenix_H1A3_run9ES,
+        }
 
 
-        for id_val in temp_df_id:
-            Phoenix_A.append([id_val, 1])
+        if data_key in dataset_map:
+            for id_val in temp_df_id:
+                dataset_map[data_key].append([id_val, 1])
 
-
-
-
-print(I9094_A)
-print(I294l1_A) 
-print(Phoenix_A)
 
 
 ####################### SIMULATION PARAMETERS ##########################################################
@@ -388,22 +452,27 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
     param_names = ['th','dmin', 'lamb']
     num_params = len(param_names)
     
-    #convert list of lists into a 2D numpy array for easier column-wise access
+    # Convert list of lists into a 2D numpy array
     all_params_array = np.array(all_params)
-    
-    #histograms for each parameter
+
+    # Ensure array is 2D (even if all_params is 1D)
+    if all_params_array.ndim == 1:
+        all_params_array = all_params_array.reshape(-1, num_params)
+
+    # Create histograms for each parameter
     fig, axs = plt.subplots(1, num_params, figsize=(20, 4))
+
     for i in range(num_params):
         axs[i].hist(all_params_array[:, i], bins=20, color='skyblue', edgecolor='black')
         axs[i].set_title(param_names[i])
         axs[i].set_xlabel('Value')
         axs[i].set_ylabel('Frequency')
-    
+
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_hist.png')
     plt.savefig(plot_filename)
 
-    #create box plots for each parameter
+    # Create box plots for each parameter
     plt.figure(figsize=(10, 6))
     plt.boxplot(all_params_array, labels=param_names, patch_artist=True)
     plt.title('Distribution of PT Model Parameters')
@@ -466,13 +535,20 @@ for df_key, df_path in datasets.items():
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
+
+    if df_key == 'df9094' or df_key == 'df294l1':
+        continue
+
     if df_key == "df395":
-        pos = "yloc_kf"
+        pos = "yloc_kf" 
     else:
         pos = "xloc_kf"
-
-    if df_key == "df9094" or df_key == 'dfphoenix':    
-        df = format_speed(df)
+        
+    # if df_key == "df9094" or df_key == 'dfphoenix':    
+    #     df = format_speed(df)
+    
+    if df_key == "df9094":    
+        df = format_speed(df)     
 
     for group in groups[df_key]:
         # Define the current group
