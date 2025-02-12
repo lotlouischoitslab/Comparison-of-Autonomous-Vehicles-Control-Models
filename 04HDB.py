@@ -8,23 +8,53 @@ import os
  
 
 
-datasets = { 
-"df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
-"df294l1": "TGSIM/I294_L1_Trajectories.csv", 
+datasets = {
+    "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
+    "df294l1": "TGSIM/I294_L1_Trajectories.csv",
 
-# "dfphoenix": "TGSIM/run3_trajectories_smoothed.csv",
-#"dfphoenix": "TGSIM/run7_Trajectories_smoothed.csv",
-# "dfphoenix": "TGSIM/run8_NS_trajectories_smoothed.csv", 
-"dfphoenix": "TGSIM/run9_NS_Trajectories_smoothed.csv",
+    # "dfphoenixh2a5_run1": "TGSIM/H2A5_run1_Y_W_decrease.csv",
+    "dfphoenixh2a5_run2": "TGSIM/H2A5_run2_X_S_increase.csv",
+    # "dfphoenixh2a5_run3": "TGSIM/H2A5_run3_Y_W_decrease.csv",
+    # "dfphoenixh2a5_run4": "TGSIM/H2A5_run4_Y_W_decrease.csv",
+    # "dfphoenixh2a5_run5": "TGSIM/H2A5_run5_X_N_decrease.csv",
+    # "dfphoenixh2a5_run6": "TGSIM/H2A5_run6_Y_W_decrease.csv",
+
+    "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",
+    # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
+    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",
+    # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",
+    "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",
+    # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",
+    # "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",
+    # "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv",
+    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv",
+    "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv",
 }
 
- 
 
-groups = { 
+# Define groups to reference the correct separate lists
+groups = {
     "df9094": ["I9094_A"],
-    "df294l1": ["I294l1_A"], 
-    "dfphoenix": ["Phoenix_A"]
-    }
+    "df294l1": ["I294l1_A"],
+
+    # "dfphoenixh2a5_run1": ["Phoenix_H2A5_run1"],
+    "dfphoenixh2a5_run2": ["Phoenix_H2A5_run2"],
+    # "dfphoenixh2a5_run3": ["Phoenix_H2A5_run3"],
+    # "dfphoenixh2a5_run4": ["Phoenix_H2A5_run4"],
+    # "dfphoenixh2a5_run5": ["Phoenix_H2A5_run5"],
+    # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"],
+
+    "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],
+    # "dfphoenixh1a3_run3": ["Phoenix_H1A3_run3"],
+    # "dfphoenixh1a3_run4": ["Phoenix_H1A3_run4"],
+    # "dfphoenixh1a3_run5": ["Phoenix_H1A3_run5"],
+    "dfphoenixh1a3_run6": ["Phoenix_H1A3_run6"],
+    # "dfphoenixh1a3_run7": ["Phoenix_H1A3_run7"],
+    # "dfphoenixh1a3_run8NS": ["Phoenix_H1A3_run8NS"],
+    # "dfphoenixh1a3_run8EW": ["Phoenix_H1A3_run8EW"],
+    "dfphoenixh1a3_run9NS": ["Phoenix_H1A3_run9NS"],
+    "dfphoenixh1a3_run9ES": ["Phoenix_H1A3_run9ES"],
+}
 
 
 I9094_A, I294l1_A, Phoenix_A = [], [], []
