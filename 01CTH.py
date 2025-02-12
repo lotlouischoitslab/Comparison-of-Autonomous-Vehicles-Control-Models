@@ -141,8 +141,8 @@ mutation_rate = 0.1  # Reduce mutation rate for better stability
  
  
 th_min = 1.5
-th_max = 3.0
-dmin_min = 3.0
+th_max = 2.0
+dmin_min = 2.5
 dmin_max = 3.5
 lamb_min = 0.00001
 lamb_max = 0.0001

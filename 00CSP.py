@@ -368,9 +368,9 @@ def mutate(child, param_ranges):
  
 
 def genetic_algorithm():  
-    kp_range = (0.5, 1.5)  # Less aggressive position tracking
-    kv_range = (0.1, 0.9)   # Stronger speed correction for better tracking
-    S_desired_range = (3.0, 4)
+    kp_range = (0.01, 1.5)  # Less aggressive position tracking
+    kv_range = (0.01, 0.9)   # Stronger speed correction for better tracking
+    S_desired_range = (2.5, 3.5)
  
     # Define parameter ranges for each parameter 
     param_ranges = [kv_range, kp_range, S_desired_range]
