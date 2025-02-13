@@ -16,24 +16,28 @@ datasets = {
     "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
     "df294l1": "TGSIM/I294_L1_Trajectories.csv",
 
+
+
+    # "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",    # BAD DATA
+    # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
+    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",   # Skip for now
+    # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",   # Goes in the opposite direction 
+    "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",   # GOOD DATA TO USE 
+    # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",  # BAD DATA 
+    # "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",  # BAD DATA
+    "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv", # Has lane-changing so check later
+    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv", # GOOD DATA TO USE 
+    "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv", # OK DATA TO USE 
+
+
     # "dfphoenixh2a5_run1": "TGSIM/H2A5_run1_Y_W_decrease.csv",
-    "dfphoenixh2a5_run2": "TGSIM/H2A5_run2_X_S_increase.csv",
+    # "dfphoenixh2a5_run2": "TGSIM/H2A5_run2_X_S_increase.csv", # BAD DATA NO AV DATA AT ALL!            
     # "dfphoenixh2a5_run3": "TGSIM/H2A5_run3_Y_W_decrease.csv",
     # "dfphoenixh2a5_run4": "TGSIM/H2A5_run4_Y_W_decrease.csv",
     # "dfphoenixh2a5_run5": "TGSIM/H2A5_run5_X_N_decrease.csv",
     # "dfphoenixh2a5_run6": "TGSIM/H2A5_run6_Y_W_decrease.csv",
-
-    "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",
-    # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
-    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",
-    # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",
-    # "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",
-    # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",
-    # "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",
-    # "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv",
-    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv",
-    # "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv",
 }
+
 
 
 # Define groups to reference the correct separate lists
@@ -41,23 +45,27 @@ groups = {
     "df9094": ["I9094_A"],
     "df294l1": ["I294l1_A"],
 
+
+    # "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],   
+    # "dfphoenixh1a3_run3": ["Phoenix_H1A3_run3"],
+    "dfphoenixh1a3_run4": ["Phoenix_H1A3_run4"],
+    # "dfphoenixh1a3_run5": ["Phoenix_H1A3_run5"],
+    "dfphoenixh1a3_run6": ["Phoenix_H1A3_run6"],
+    # "dfphoenixh1a3_run7": ["Phoenix_H1A3_run7"],
+    # "dfphoenixh1a3_run8NS": ["Phoenix_H1A3_run8NS"],
+    "dfphoenixh1a3_run8EW": ["Phoenix_H1A3_run8EW"],
+    "dfphoenixh1a3_run9NS": ["Phoenix_H1A3_run9NS"],
+    "dfphoenixh1a3_run9ES": ["Phoenix_H1A3_run9ES"],
+
+
     # "dfphoenixh2a5_run1": ["Phoenix_H2A5_run1"],
-    "dfphoenixh2a5_run2": ["Phoenix_H2A5_run2"],
+    # "dfphoenixh2a5_run2": ["Phoenix_H2A5_run2"],
     # "dfphoenixh2a5_run3": ["Phoenix_H2A5_run3"],
     # "dfphoenixh2a5_run4": ["Phoenix_H2A5_run4"],
     # "dfphoenixh2a5_run5": ["Phoenix_H2A5_run5"],
     # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"],
 
-    "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],
-    # "dfphoenixh1a3_run3": ["Phoenix_H1A3_run3"],
-    # "dfphoenixh1a3_run4": ["Phoenix_H1A3_run4"],
-    # "dfphoenixh1a3_run5": ["Phoenix_H1A3_run5"],
-    # "dfphoenixh1a3_run6": ["Phoenix_H1A3_run6"],
-    # "dfphoenixh1a3_run7": ["Phoenix_H1A3_run7"],
-    # "dfphoenixh1a3_run8NS": ["Phoenix_H1A3_run8NS"],
-    # "dfphoenixh1a3_run8EW": ["Phoenix_H1A3_run8EW"],
-    "dfphoenixh1a3_run9NS": ["Phoenix_H1A3_run9NS"],
-    # "dfphoenixh1a3_run9ES": ["Phoenix_H1A3_run9ES"],
+ 
 }
 
 
@@ -283,6 +291,9 @@ def simulate_car_following(params):
         acl[i] = acceleration
         speed[i] = speed[i - 1] + acceleration * dt
         position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration * (dt ** 2)  
+
+        if speed[i] < 0:
+            position[i] = position[i - 1] - abs(speed[i - 1] * dt) - 0.5 * abs(acceleration * (dt ** 2))
  
        
     return position, speed, acl
@@ -370,7 +381,7 @@ def mutate(child, param_ranges):
 def genetic_algorithm():  
     kp_range = (0.01, 1.5)  # Less aggressive position tracking
     kv_range = (0.01, 0.9)   # Stronger speed correction for better tracking
-    S_desired_range = (2.5, 3.5)
+    S_desired_range = (2.5, 10)
  
     # Define parameter ranges for each parameter 
     param_ranges = [kv_range, kp_range, S_desired_range]
@@ -540,8 +551,8 @@ for df_key, df_path in datasets.items():
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
 
-    # if df_key == 'df9094' or df_key == 'df294l1':
-    #     continue
+    if df_key == 'df9094' or df_key == 'df294l1':
+        continue
 
     if df_key == "df395":
         pos = "yloc_kf" 
