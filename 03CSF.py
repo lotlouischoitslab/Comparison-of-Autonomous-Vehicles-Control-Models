@@ -150,10 +150,10 @@ dmin_min = 2.5
 dmin_max = 3.0   
 
 
-lamb_min = 0.1  # Reduce control gain
+lamb_min = 0.01  # Reduce control gain
 lamb_max = 0.4
 
-K_min = 1.0   # Reduce safety coefficient
+K_min = 0.5   # Reduce safety coefficient
 K_max = 2.0
 
 gamma_min = 0.1  # Reduce braking dynamics coefficient
@@ -377,7 +377,7 @@ def simulate_car_following(params):
         dt = time_step
         vi = speed[i - 1] 
 
-        td = max(0.05, min(0.2, 0.05 + 0.01 * vi))  # Adaptive delay
+        td = 0.05
  
         
         Dstop = -vi**2 / (2 * ji) # Calculate stopping distance   
@@ -604,13 +604,14 @@ for df_key, df_path in datasets.items():
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
+ 
 
     if df_key == "df395":
         pos = "yloc_kf"
     else:
         pos = "xloc_kf"
 
-    if df_key == "df9094" or df_key == 'dfphoenix':    
+    if df_key == "df9094":    
         df = format_speed(df)
         
     for group in groups[df_key]:
