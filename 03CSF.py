@@ -11,29 +11,32 @@ import os
 # Phoenix Dataset: https://drive.google.com/drive/folders/1FMLA77VUjdAaS0GXRjvVg4S3rg4IANDz 
  
 
-# Define dataset file paths
 datasets = {
     "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
     "df294l1": "TGSIM/I294_L1_Trajectories.csv",
 
+
+
+    # "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",    # BAD DATA
+    # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
+    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",   # Don't use this
+    # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",   # Goes in the opposite direction 
+    "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",    # GOOD DATA TO USE (SWAPPED)
+    # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",  # BAD DATA 
+    # "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",  # BAD DATA
+    "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv", # Has lane-changing so check later
+    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv", # GOOD DATA TO USE (NO SWAPPING)
+    "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv", # OK DATA TO USE 
+
+
     # "dfphoenixh2a5_run1": "TGSIM/H2A5_run1_Y_W_decrease.csv",
-    "dfphoenixh2a5_run2": "TGSIM/H2A5_run2_X_S_increase.csv",
+    # "dfphoenixh2a5_run2": "TGSIM/H2A5_run2_X_S_increase.csv", # BAD DATA NO AV DATA AT ALL!            
     # "dfphoenixh2a5_run3": "TGSIM/H2A5_run3_Y_W_decrease.csv",
     # "dfphoenixh2a5_run4": "TGSIM/H2A5_run4_Y_W_decrease.csv",
     # "dfphoenixh2a5_run5": "TGSIM/H2A5_run5_X_N_decrease.csv",
     # "dfphoenixh2a5_run6": "TGSIM/H2A5_run6_Y_W_decrease.csv",
-
-    "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",
-    # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
-    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",
-    # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",
-    # "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",
-    # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",
-    # "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",
-    # "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv",
-    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv",
-    # "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv",
 }
+
 
 
 # Define groups to reference the correct separate lists
@@ -41,24 +44,27 @@ groups = {
     "df9094": ["I9094_A"],
     "df294l1": ["I294l1_A"],
 
-    # "dfphoenixh2a5_run1": ["Phoenix_H2A5_run1"],
-    "dfphoenixh2a5_run2": ["Phoenix_H2A5_run2"],
-    # "dfphoenixh2a5_run3": ["Phoenix_H2A5_run3"],
-    # "dfphoenixh2a5_run4": ["Phoenix_H2A5_run4"],
-    # "dfphoenixh2a5_run5": ["Phoenix_H2A5_run5"],
-    # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"],
 
-    "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],
+    # "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],   
     # "dfphoenixh1a3_run3": ["Phoenix_H1A3_run3"],
     # "dfphoenixh1a3_run4": ["Phoenix_H1A3_run4"],
     # "dfphoenixh1a3_run5": ["Phoenix_H1A3_run5"],
-    # "dfphoenixh1a3_run6": ["Phoenix_H1A3_run6"],
+    "dfphoenixh1a3_run6": ["Phoenix_H1A3_run6"],
     # "dfphoenixh1a3_run7": ["Phoenix_H1A3_run7"],
     # "dfphoenixh1a3_run8NS": ["Phoenix_H1A3_run8NS"],
-    # "dfphoenixh1a3_run8EW": ["Phoenix_H1A3_run8EW"],
+    "dfphoenixh1a3_run8EW": ["Phoenix_H1A3_run8EW"],
     "dfphoenixh1a3_run9NS": ["Phoenix_H1A3_run9NS"],
-    # "dfphoenixh1a3_run9ES": ["Phoenix_H1A3_run9ES"],
+    "dfphoenixh1a3_run9ES": ["Phoenix_H1A3_run9ES"],
+
+
+    # "dfphoenixh2a5_run1": ["Phoenix_H2A5_run1"],
+    # "dfphoenixh2a5_run2": ["Phoenix_H2A5_run2"],
+    # "dfphoenixh2a5_run3": ["Phoenix_H2A5_run3"],
+    # "dfphoenixh2a5_run4": ["Phoenix_H2A5_run4"],
+    # "dfphoenixh2a5_run5": ["Phoenix_H2A5_run5"],
+    # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"], 
 }
+
 
 
 # Define separate arrays for each dataset
@@ -347,7 +353,8 @@ def simulate_car_following(params):
     """
     # Unpack parameters 
     dmin, K, lamb, gamma = params  
-    td = 0.05 # time delay in seconds 
+    
+
  
 
     # Time and number of steps
@@ -369,11 +376,14 @@ def simulate_car_following(params):
     for i in range(1, num_steps):
         dt = time_step
         vi = speed[i - 1] 
+
+        td = max(0.05, min(0.2, 0.05 + 0.01 * vi))  # Adaptive delay
  
-        # Calculate stopping distance 
         
-        Dstop = -vi**2 / (2 * ji)
+        Dstop = -vi**2 / (2 * ji) # Calculate stopping distance   
         ddes = dmin + td * vi + K * Dstop
+
+        
 
     
  
@@ -613,6 +623,13 @@ for df_key, df_path in datasets.items():
         for data in AVs:
             follower_id, run_index = data
             sdf, ldf = extract_subject_and_leader_data(df, follower_id, run_index)
+    
+            # Discard the last 100 points for each trajectory
+            last_filter = 200 
+            if len(sdf) > last_filter:
+                sdf = sdf.iloc[:-last_filter]
+            if len(ldf) > last_filter:
+                ldf = ldf.iloc[:-last_filter]
            
             # Check if sdf is empty
             if sdf.empty:

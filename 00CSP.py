@@ -20,13 +20,13 @@ datasets = {
 
     # "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",    # BAD DATA
     # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
-    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",   # Skip for now
+    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",   # Don't use this
     # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",   # Goes in the opposite direction 
-    "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",   # GOOD DATA TO USE 
+    "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",    # GOOD DATA TO USE (SWAPPED)
     # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",  # BAD DATA 
     # "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",  # BAD DATA
     "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv", # Has lane-changing so check later
-    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv", # GOOD DATA TO USE 
+    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv", # GOOD DATA TO USE (NO SWAPPING)
     "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv", # OK DATA TO USE 
 
 
@@ -48,7 +48,7 @@ groups = {
 
     # "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],   
     # "dfphoenixh1a3_run3": ["Phoenix_H1A3_run3"],
-    "dfphoenixh1a3_run4": ["Phoenix_H1A3_run4"],
+    # "dfphoenixh1a3_run4": ["Phoenix_H1A3_run4"],
     # "dfphoenixh1a3_run5": ["Phoenix_H1A3_run5"],
     "dfphoenixh1a3_run6": ["Phoenix_H1A3_run6"],
     # "dfphoenixh1a3_run7": ["Phoenix_H1A3_run7"],
@@ -63,9 +63,7 @@ groups = {
     # "dfphoenixh2a5_run3": ["Phoenix_H2A5_run3"],
     # "dfphoenixh2a5_run4": ["Phoenix_H2A5_run4"],
     # "dfphoenixh2a5_run5": ["Phoenix_H2A5_run5"],
-    # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"],
-
- 
+    # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"], 
 }
 
 
@@ -292,8 +290,7 @@ def simulate_car_following(params):
         speed[i] = speed[i - 1] + acceleration * dt
         position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration * (dt ** 2)  
 
-        if speed[i] < 0:
-            position[i] = position[i - 1] - abs(speed[i - 1] * dt) - 0.5 * abs(acceleration * (dt ** 2))
+ 
  
        
     return position, speed, acl
@@ -429,6 +426,8 @@ def genetic_algorithm():
 
 
 
+
+
 def plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir):
     plt.figure(figsize=(10, 12))
     plt.subplot(2, 1, 1)
@@ -545,23 +544,17 @@ save_dir = 'Results/00CSP/'
 
 
 
-#iterate through each dataset and group
+# Iterate through each dataset and group
 for df_key, df_path in datasets.items():   
     df = pd.read_csv(df_path) 
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
 
-    if df_key == 'df9094' or df_key == 'df294l1':
-        continue
-
     if df_key == "df395":
         pos = "yloc_kf" 
     else:
         pos = "xloc_kf"
-        
-    # if df_key == "df9094" or df_key == 'dfphoenix':    
-    #     df = format_speed(df)
-    
+
     if df_key == "df9094":    
         df = format_speed(df)     
 
@@ -574,35 +567,35 @@ for df_key, df_path in datasets.items():
         for data in AVs:
             follower_id, run_index = data
             sdf, ldf = extract_subject_and_leader_data(df, follower_id, run_index)
+
+            # Discard the last 100 points for each trajectory
+            last_filter = 200 
+            if len(sdf) > last_filter:
+                sdf = sdf.iloc[:-last_filter]
+            if len(ldf) > last_filter:
+                ldf = ldf.iloc[:-last_filter]
             
-    
-            # Check if sdf is empty
+            # Check if sdf is empty after filtering
             if sdf.empty:
                 print(f"No data found for Follower ID {follower_id} and Run Index {run_index}. Skipping...")
                 continue
-            else:
-                total_time = len(ldf) * 0.1
-                time_step, num_steps = 0.1, round(total_time / 0.1)
-                timex = np.linspace(0, total_time, num_steps)
-                leader_position, leader_speed = ldf[pos].tolist(), ldf['speed_kf'].tolist()
-                target_position, target_speed, target_acceleration = sdf[pos].tolist(), sdf['speed_kf'].tolist(), sdf['acceleration_kf'].tolist()
+            
+            total_time = len(ldf) * 0.1
+            time_step, num_steps = 0.1, round(total_time / 0.1)
+            timex = np.linspace(0, total_time, num_steps)
+            leader_position, leader_speed = ldf[pos].tolist(), ldf['speed_kf'].tolist()
+            target_position, target_speed, target_acceleration = sdf[pos].tolist(), sdf['speed_kf'].tolist(), sdf['acceleration_kf'].tolist()
                 
+            best_params, best_error, best_metrics = genetic_algorithm()
+            all_params.append(best_params)
 
-                best_params, best_error, best_metrics = genetic_algorithm()
-                all_params.append(best_params)
+            params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
+             
+            sim_position, sim_speed, acl = simulate_car_following(best_params)
+            plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
 
-                params_list.append([follower_id, run_index] + best_params + [best_error] + list(best_metrics.values()))
-                 
-                sim_position, sim_speed, acl = simulate_car_following(best_params)
-                plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
-        
-
-
-        visualize_parameter_distributions(all_params,save_dir,outname)
+        visualize_parameter_distributions(all_params, save_dir, outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index','kv', 'kp','S_desired', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'kv', 'kp', 'S_desired', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
-
-
- 
