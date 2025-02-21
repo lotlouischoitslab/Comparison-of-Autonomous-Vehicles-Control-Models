@@ -89,26 +89,23 @@ Phoenix_H1A3_run8EW = []
 Phoenix_H1A3_run9NS = []
 Phoenix_H1A3_run9ES = []
 
-# Iterate through datasets and populate lists
+
+############### READ AND ITERATE THROUGH EACH DATA AND STORE THE ACC TYPE ID AND RUN INDEX ################################# 
 for data_key, data_path in datasets.items():
     temp_df = pd.read_csv(data_path)
 
     if data_key == 'df9094':
-        temp_df_av = temp_df[temp_df['av'] == 'yes']
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].unique()
-        
-        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
-            I9094_A.append([id_val, run_index_val])
+        temp_df_av = temp_df[temp_df['av'] == 'yes'] 
+        I9094_A = temp_df_av[['id', 'run_index']].drop_duplicates().values.tolist()
+
+
 
     elif data_key == 'df294l1':
         temp_df['acc'] = temp_df['acc'].str.lower()
         temp_df_av = temp_df[temp_df['acc'] == 'yes']
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].unique()
 
-        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
-            I294l1_A.append([id_val, run_index_val])
+        I294l1_A = temp_df_av[['id', 'run_index']].drop_duplicates().values.tolist()
+
 
     else:
         temp_df_av = temp_df[temp_df['vehicle-type'] == 'A'].drop_duplicates()
@@ -139,7 +136,11 @@ for data_key, data_path in datasets.items():
 
  
 
+print('I90/94')
+print(I9094_A)
 
+print('I294l1')
+print(I294l1_A)
 
 ####################### SIMULATION PARAMETERS ##########################################################
 population_size = 100  # Keep as is (sufficient for convergence)
@@ -154,16 +155,22 @@ def find_leader_data(df, follower_id, run_index):
     global most_leading_leader_id
     
     follower_data = df[(df['id'] == follower_id) & (df['run_index'] == run_index)]
+    
+    print(f"Finding leader for Follower ID {follower_id} and Run Index {run_index}. Rows found: {len(follower_data)}")
+    
     leader_data_dict = {}
     
     for index, row in follower_data.iterrows():
         time = row['time']
         follower_x = row[pos]
         follower_lane = row['lane_kf']
-        run_index = row['run_index']
-
-        #find the leader
-        leader_data = df[(df['id'] != follower_id) & (df['time'] == time) & (df['lane_kf'] == follower_lane) & (df[pos] > follower_x) & (df['run_index'] == run_index)]
+        current_run_index = row['run_index']  # Rename to avoid overwriting
+        
+        leader_data = df[(df['id'] != follower_id) & 
+                         (df['time'] == time) & 
+                         (df['lane_kf'] == follower_lane) & 
+                         (df[pos] > follower_x) & 
+                         (df['run_index'] == current_run_index)]
         
         if not leader_data.empty:
             nearest_leader_row = leader_data.loc[leader_data[pos].sub(follower_x).abs().idxmin()]
@@ -186,12 +193,12 @@ def find_leader_data(df, follower_id, run_index):
                                    'time': leader_data['time'],
                                    pos: leader_data['x_val'],
                                    'speed_kf': leader_data['speed_val'],
-                                   'run_index': run_index})
+                                   'run_index': run_index})  # Ensure this is not overwritten
     else:
         leader_df = pd.DataFrame(columns=['id', 'time', pos, 'speed_kf', 'run_index'])
     
- 
     return leader_df
+
  
  
 
@@ -533,15 +540,11 @@ def format_speed(df):
 
 
  
-
  
-
-
-#Save directory for plots
+# Save directory for plots
 save_dir = 'Results/00CSP/'
 
-
-
+ 
 
 
 # Iterate through each dataset and group
