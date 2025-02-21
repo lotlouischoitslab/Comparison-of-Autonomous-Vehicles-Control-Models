@@ -100,9 +100,9 @@ for data_key, data_path in datasets.items():
 
 
 
-    elif data_key == "df294l1":  
-        temp_df_av = temp_df[temp_df['acc'] == 'yes']  # Now this will correctly filter out 'no' 
-        print(temp_df_av['acc'].unique())  # Should output only ['yes']
+    elif data_key == 'df294l1':
+        temp_df['acc'] = temp_df['acc'].str.lower()
+        temp_df_av = temp_df[temp_df['acc'] == 'yes']
 
         I294l1_A = temp_df_av[['id', 'run_index']].drop_duplicates().values.tolist()
 
