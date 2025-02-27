@@ -8,28 +8,35 @@ import os
  
 
 
+# Phoenix Dataset: https://drive.google.com/drive/folders/1FMLA77VUjdAaS0GXRjvVg4S3rg4IANDz 
+ 
+
 datasets = {
     "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
     "df294l1": "TGSIM/I294_L1_Trajectories.csv",
 
+
+
+    # "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",    # BAD DATA
+    # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
+    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",   # Don't use this
+    # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",   # Goes in the opposite direction 
+    "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",    # GOOD DATA TO USE (SWAPPED)
+    # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",  # BAD DATA 
+    # "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",  # BAD DATA
+    "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv", # Has lane-changing so check later
+    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv", # GOOD DATA TO USE (NO SWAPPING)
+    "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv", # OK DATA TO USE 
+
+
     # "dfphoenixh2a5_run1": "TGSIM/H2A5_run1_Y_W_decrease.csv",
-    "dfphoenixh2a5_run2": "TGSIM/H2A5_run2_X_S_increase.csv",
+    # "dfphoenixh2a5_run2": "TGSIM/H2A5_run2_X_S_increase.csv", # BAD DATA NO AV DATA AT ALL!            
     # "dfphoenixh2a5_run3": "TGSIM/H2A5_run3_Y_W_decrease.csv",
     # "dfphoenixh2a5_run4": "TGSIM/H2A5_run4_Y_W_decrease.csv",
     # "dfphoenixh2a5_run5": "TGSIM/H2A5_run5_X_N_decrease.csv",
     # "dfphoenixh2a5_run6": "TGSIM/H2A5_run6_Y_W_decrease.csv",
-
-    "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",
-    # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
-    # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",
-    # "dfphoenixh1a3_run5": "TGSIM/H1A3_run5_Y_decrease.csv",
-    "dfphoenixh1a3_run6": "TGSIM/H1A3_run6_Y_increase.csv",
-    # "dfphoenixh1a3_run7": "TGSIM/H1A3_run7_X_decrease.csv",
-    # "dfphoenixh1a3_run8NS": "TGSIM/H1A3_run8_X_NS_increase.csv",
-    # "dfphoenixh1a3_run8EW": "TGSIM/H1A3_run8_Y_EW_increase.csv",
-    "dfphoenixh1a3_run9NS": "TGSIM/H1A3_run9_X_NS_increase.csv",
-    "dfphoenixh1a3_run9ES": "TGSIM/H1A3_run9_Y_EW_increase.csv",
 }
+
 
 
 # Define groups to reference the correct separate lists
@@ -37,112 +44,133 @@ groups = {
     "df9094": ["I9094_A"],
     "df294l1": ["I294l1_A"],
 
-    # "dfphoenixh2a5_run1": ["Phoenix_H2A5_run1"],
-    "dfphoenixh2a5_run2": ["Phoenix_H2A5_run2"],
-    # "dfphoenixh2a5_run3": ["Phoenix_H2A5_run3"],
-    # "dfphoenixh2a5_run4": ["Phoenix_H2A5_run4"],
-    # "dfphoenixh2a5_run5": ["Phoenix_H2A5_run5"],
-    # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"],
 
-    "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],
+    # "dfphoenixh1a3_run1": ["Phoenix_H1A3_run1"],   
     # "dfphoenixh1a3_run3": ["Phoenix_H1A3_run3"],
     # "dfphoenixh1a3_run4": ["Phoenix_H1A3_run4"],
     # "dfphoenixh1a3_run5": ["Phoenix_H1A3_run5"],
     "dfphoenixh1a3_run6": ["Phoenix_H1A3_run6"],
     # "dfphoenixh1a3_run7": ["Phoenix_H1A3_run7"],
     # "dfphoenixh1a3_run8NS": ["Phoenix_H1A3_run8NS"],
-    # "dfphoenixh1a3_run8EW": ["Phoenix_H1A3_run8EW"],
+    "dfphoenixh1a3_run8EW": ["Phoenix_H1A3_run8EW"],
     "dfphoenixh1a3_run9NS": ["Phoenix_H1A3_run9NS"],
     "dfphoenixh1a3_run9ES": ["Phoenix_H1A3_run9ES"],
+
+
+    # "dfphoenixh2a5_run1": ["Phoenix_H2A5_run1"],
+    # "dfphoenixh2a5_run2": ["Phoenix_H2A5_run2"],
+    # "dfphoenixh2a5_run3": ["Phoenix_H2A5_run3"],
+    # "dfphoenixh2a5_run4": ["Phoenix_H2A5_run4"],
+    # "dfphoenixh2a5_run5": ["Phoenix_H2A5_run5"],
+    # "dfphoenixh2a5_run6": ["Phoenix_H2A5_run6"], 
 }
 
 
-I9094_A, I294l1_A, Phoenix_A = [], [], []
 
+# Define separate arrays for each dataset
+I9094_A = []
+I294l1_A = []
 
+Phoenix_H2A5_run1 = []
+Phoenix_H2A5_run2 = []
+Phoenix_H2A5_run3 = []
+Phoenix_H2A5_run4 = []
+Phoenix_H2A5_run5 = []
+Phoenix_H2A5_run6 = []
+
+Phoenix_H1A3_run1 = []
+Phoenix_H1A3_run3 = []
+Phoenix_H1A3_run4 = []
+Phoenix_H1A3_run5 = []
+Phoenix_H1A3_run6 = []
+Phoenix_H1A3_run7 = []
+Phoenix_H1A3_run8NS = []
+Phoenix_H1A3_run8EW = []
+Phoenix_H1A3_run9NS = []
+Phoenix_H1A3_run9ES = []
+
+############### READ AND ITERATE THROUGH EACH DATA AND STORE THE ACC TYPE ID AND RUN INDEX ################################# 
 for data_key, data_path in datasets.items():
-    temp_df = pd.read_csv(data_path)  
+    temp_df = pd.read_csv(data_path)
 
     if data_key == 'df9094':
-        temp_df_av = temp_df[temp_df['av'] == 'yes']
-        temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].unique()
-    
-      
-        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
-            I9094_A.append([id_val, run_index_val])
+        temp_df_av = temp_df[temp_df['av'] == 'yes'] 
+        I9094_A = temp_df_av[['id', 'run_index']].drop_duplicates().values.tolist()
+
 
 
     elif data_key == 'df294l1':
         temp_df['acc'] = temp_df['acc'].str.lower()
-        temp_df_av = temp_df[temp_df['acc'] == 'yes']
+        temp_df_av = temp_df[temp_df['acc'] == 'yes'] 
+        I294l1_A = temp_df_av[['id', 'run_index']].drop_duplicates().values.tolist()
+
+
+    else:
+        temp_df_av = temp_df[temp_df['vehicle-type'] == 'A'].drop_duplicates()
         temp_df_id = temp_df_av['id'].unique()
-        temp_df_run_index = temp_df_av['run_index'].unique()
 
+        dataset_map = {
+            "dfphoenixh2a5_run1": Phoenix_H2A5_run1,
+            "dfphoenixh2a5_run2": Phoenix_H2A5_run2,
+            "dfphoenixh2a5_run3": Phoenix_H2A5_run3,
+            "dfphoenixh2a5_run4": Phoenix_H2A5_run4,
+            "dfphoenixh2a5_run5": Phoenix_H2A5_run5,
+            "dfphoenixh2a5_run6": Phoenix_H2A5_run6,
+            "dfphoenixh1a3_run1": Phoenix_H1A3_run1,
+            "dfphoenixh1a3_run3": Phoenix_H1A3_run3,
+            "dfphoenixh1a3_run4": Phoenix_H1A3_run4,
+            "dfphoenixh1a3_run5": Phoenix_H1A3_run5,
+            "dfphoenixh1a3_run6": Phoenix_H1A3_run6,
+            "dfphoenixh1a3_run7": Phoenix_H1A3_run7,
+            "dfphoenixh1a3_run8NS": Phoenix_H1A3_run8NS,
+            "dfphoenixh1a3_run8EW": Phoenix_H1A3_run8EW,
+            "dfphoenixh1a3_run9NS": Phoenix_H1A3_run9NS,
+            "dfphoenixh1a3_run9ES": Phoenix_H1A3_run9ES,
+        }
 
-        for id_val, run_index_val in zip(temp_df_id, temp_df_run_index):
-            I294l1_A.append([id_val, run_index_val])
+        if data_key in dataset_map:
+            for id_val in temp_df_id:
+                dataset_map[data_key].append([id_val, 1])
 
  
 
-    elif data_key == 'dfphoenix': 
-        temp_df_id = temp_df['id'].unique() 
-        print(temp_df_id)
-
-
-        for id_val in temp_df_id:
-            Phoenix_A.append([id_val, 1])
-
-
-
+print('I90/94')
 print(I9094_A)
-print(I294l1_A) 
-print(Phoenix_A)
+
+print('I294l1')
+print(I294l1_A)
+
 
 population_size = 100
-num_generations = 100
+num_generations = 100 
 mutation_rate = 0.1
 delta = 0.1 
-
-
-A_min = 3
-A_max = 5
-
-Th_min = 2.0 
-Th_max = 5.0  
-
-Ta_min = 3.0
-Ta_max = 6.0 
  
-
-G_min = -5
-G_max = 5
-
-
-tau_min = 0.35 # time constant 
-tau_max = 0.5 
+  
+most_leading_leader_id = None
 
 
-lamb_min = 0.5
-lamb_max = 1.5
-
-
-most_leading_leader_id = None 
 
 def find_leader_data(df, follower_id, run_index):
     global most_leading_leader_id
     
     follower_data = df[(df['id'] == follower_id) & (df['run_index'] == run_index)]
+    
+    print(f"Finding leader for Follower ID {follower_id} and Run Index {run_index}. Rows found: {len(follower_data)}")
+    
     leader_data_dict = {}
     
     for index, row in follower_data.iterrows():
         time = row['time']
         follower_x = row[pos]
         follower_lane = row['lane_kf']
-        run_index = row['run_index']
-
-        #find the leader
-        leader_data = df[(df['id'] != follower_id) & (df['time'] == time) & (df['lane_kf'] == follower_lane) & (df[pos] > follower_x) & (df['run_index'] == run_index)]
+        current_run_index = row['run_index']  # Rename to avoid overwriting
+        
+        leader_data = df[(df['id'] != follower_id) & 
+                         (df['time'] == time) & 
+                         (df['lane_kf'] == follower_lane) & 
+                         (df[pos] > follower_x) & 
+                         (df['run_index'] == current_run_index)]
         
         if not leader_data.empty:
             nearest_leader_row = leader_data.loc[leader_data[pos].sub(follower_x).abs().idxmin()]
@@ -159,17 +187,21 @@ def find_leader_data(df, follower_id, run_index):
             leader_data_dict[leader_id]['speed_val'].append(leader_speed_val)
 
     if leader_data_dict:
-        most_leading_leader_id = max(leader_data_dict, key=lambda x: len(leader_data_dict[x]['time']))
+        most_leading_leader_id = max(leader_data_dict, key=lambda x: len(leader_data_dict[x]['time'])) 
         leader_data = leader_data_dict[most_leading_leader_id]
         leader_df = pd.DataFrame({'id': most_leading_leader_id,
                                    'time': leader_data['time'],
                                    pos: leader_data['x_val'],
                                    'speed_kf': leader_data['speed_val'],
-                                   'run_index': run_index})
+                                   'run_index': run_index})  # Ensure this is not overwritten
     else:
         leader_df = pd.DataFrame(columns=['id', 'time', pos, 'speed_kf', 'run_index'])
     
     return leader_df
+
+ 
+ 
+
 
 
 
@@ -213,81 +245,117 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 
 
+def idm_acceleration(vehicle_dict, a_max, v0, delta, s0, T, b):
+    """
+    Intelligent Driver Model (IDM) acceleration calculation.
+
+    Parameters:
+        vehicle_dict (dict): Contains vehicle states.
+        a_max (float): Maximum acceleration (m/s²).
+        v0 (float): Desired velocity (m/s).
+        delta (float): Acceleration exponent (usually 4).
+        s0 (float): Minimum safe distance (m).
+        T (float): Time headway (s).
+        b (float): Comfortable deceleration (m/s²).
+
+    Returns:
+        float: Computed acceleration.
+    """
+    v = vehicle_dict['speed']
+    s = vehicle_dict['gap']
+    delta_v = vehicle_dict['deltav']  # Relative speed
+
+    # Ensure safe minimum gap
+    s_star = s0 + v * T + (v * delta_v) / (2 * np.sqrt(a_max * b))
+    
+    # IDM Acceleration formula
+    acceleration = a_max * (1 - (v / v0) ** delta - (s_star / s) ** 2)
+    
+    return acceleration
 
 
-def acceleration_calculator(i, vehicle_dict, A, Th, Ta, G, tau, lamb):
-    gap_error = vehicle_dict['gap']
-    speed_error = vehicle_dict['Rdot']
-    vi = vehicle_dict['speed']
-    temp_accl = vehicle_dict['accl']
-
-    Tv = Th + 2*G*vi
- 
- 
-
-    # Compute coefficient safely
-    coeff = 1 - (tau * Tv) / Ta
-
-    # Compute acceleration safely
-    accl = (coeff * temp_accl) + ((tau * speed_error) / Ta) + ((tau * lamb * gap_error) / Ta)
-
- 
-    accl = np.clip(accl,-3,3)
-    return accl
 
 
 
+def format_speed(df):
+    """
+    Computes heading and decomposes speed into speed_x and speed_y for each vehicle ID.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing 'id', 'time', 'xloc', 'yloc', and 'speed' columns.
+
+    Returns:
+        pd.DataFrame: Updated DataFrame with 'heading', 'speed_x', and 'speed_y' columns.
+    """
+    
+    vehicle_ids = df['id'].unique()
+    df = df.sort_values(by=['id', 'time']).copy() 
+
+    for temp_id in vehicle_ids:
+        # Filter data for the specific vehicle ID
+        temp_data = df[df['id'] == temp_id].copy()
+        
+        # Compute differences in x and y
+        temp_data['dx'] = temp_data['xloc_kf'].diff()
+        temp_data['dy'] = temp_data['yloc_kf'].diff()
+        
+        # Compute heading (in radians)
+        temp_data['heading'] = np.arctan2(temp_data['dy'], temp_data['dx'])
+        
+        # Compute speed_x and speed_y
+        temp_data['speed_x'] = temp_data['speed_kf'] * np.cos(temp_data['heading'])
+        temp_data['speed_y'] = temp_data['speed_kf'] * np.sin(temp_data['heading'])
+
+        # Fill NaN values for first row
+        temp_data.fillna(0, inplace=True)
+
+        # Assign back to the original DataFrame
+        df.loc[df['id'] == temp_id, ['dx', 'dy', 'heading', 'speed_x', 'speed_y']] = temp_data[['dx', 'dy', 'heading', 'speed_x', 'speed_y']]
+    
+    df['speed_kf'] = df['speed_x']
+    return df
 
 
-def simulate_car_following(params):
-    A, Th, Ta, G, tau, lamb = params
+
+
+def simulate_car_following(params): 
+    """
+    Simulates car-following behavior using the Intelligent Driver Model (IDM).
+
+    Parameters:
+        params (tuple): IDM parameters.
+        leader_position (array): Leader's position over time.
+        leader_speed (array): Leader's speed over time.
+
+    Returns:
+        position, speed, acceleration: Simulated follower trajectory.
+    """
+    a_max, v0, delta, s0, T, b = params
+
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
-
+    
     position = np.zeros(num_steps)
     speed = np.zeros(num_steps)
-    acl = np.zeros(num_steps)
-    R_list = np.zeros(num_steps)
+    acceleration = np.zeros(num_steps)
 
     position[0] = sdf.iloc[0][pos]
     speed[0] = sdf.iloc[0]['speed_kf']
-    acl[0] = sdf.iloc[0]['speed_kf'] / 0.1
-
-    R_list[0] = A  
 
     for i in range(1, num_steps):
         dt = time_step
-        vh = speed[i - 1]
- 
-
-        # Compute R safely
-        R = A + Th * vh + G * vh ** 2  
-
-        # Update R_list BEFORE computing Rdot
-        prev_R = R_list[i-1]
-        R_list[i] = R  
-        Rdot = (R - prev_R) / dt  
-
-        # Clip Rdot to avoid extreme changes
-        # Rdot = np.clip(Rdot, -5, 5)
-
-        # Compute spacing error
-        epsilon = R - Th * vh - Ta * acl[i]
- 
-
         vehicle_dict = {
-            'gap': epsilon,
-            'Rdot': Rdot,
-            'speed': speed[i - 1],
-            'accl': acl[i - 1]
+            'gap': position[i - 1] - leader_position[i - 1],
+            'deltav': speed[i - 1] - leader_speed[i - 1],
+            'speed': speed[i - 1]
         }
+        
+        acceleration[i] = idm_acceleration(vehicle_dict, a_max, v0, delta, s0, T, b)
+        
+        speed[i] = max(0, speed[i - 1] + acceleration[i] * dt)  # Prevent negative speed
+        position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration[i] * (dt**2)
 
-        acceleration = acceleration_calculator(i, vehicle_dict, A, Th, Ta, G, tau, lamb)
-        acl[i] = acceleration
-        speed[i] = speed[i - 1] + acceleration * dt
-        position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration * (dt ** 2)
-
-    return position, speed, acl
+    return position, speed, acceleration
 
 
 
@@ -297,8 +365,8 @@ def simulate_car_following(params):
 
 def fitness(params):
     sim_position, sim_speed, sim_accel = simulate_car_following(params) 
-    diff_speed = np.array(sim_speed) - np.array(target_speed)      
-    speed_deviation_penalty = np.sum(np.abs(diff_speed) * np.abs(diff_speed))  
+    diff_speed = np.array(sim_speed) - np.array(target_speed)    
+    speed_deviation_penalty = np.sum(np.abs(diff_speed) * np.abs(diff_speed) )  
 
     
     mse_speed = np.mean(diff_speed * diff_speed)
@@ -354,62 +422,57 @@ def crossover(parent1, parent2, param_ranges):
  
 
 
+
 def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
-            child[i] += random.uniform(-delta, delta)
-             
+            child[i] += random.uniform(-delta, delta) 
     return child
 
-    
 
+ 
+
+ 
 def genetic_algorithm():
-    A_range = (A_min, A_max)
-    Th_range = (Th_min, Th_max)
-    Ta_range = (Ta_min, Ta_max)
-    G_range = (G_min, G_max)
-    tau_range = (tau_min, tau_max)  
-    lamb_range = (lamb_min, lamb_max)
+    a_max_range = (0.1, 3.0)  # Max acceleration
+    v0_range = (10, 40)       # Desired velocity (m/s)
+    delta_range = (3, 5)      # Acceleration exponent
+    s0_range = (1, 5)         # Minimum spacing (m)
+    T_range = (0.5, 3.0)      # Time headway (s)
+    b_range = (0.5, 3.0)      # Comfortable deceleration (m/s²)
 
+    param_ranges = [a_max_range, v0_range, delta_range, s0_range, T_range, b_range]
 
-    param_ranges = [A_range, Th_range, Ta_range,G_range, tau_range, lamb_range]
+    population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
 
-
-    #population with random parameter values
-    population = [[random.uniform(*range_) for range_ in (param_ranges)]
-                  for _ in range(population_size)]
-    
     best_error = float('inf')
     best_individual = None
     best_metrics = None
-    
+
     for generation in range(num_generations):
-        #evaluate fitness and errors
         fitness_and_errors = [fitness(individual) for individual in population]
         population_sorted = sorted(zip(population, fitness_and_errors), key=lambda x: x[1][0], reverse=True)
         population = [ind for ind, _ in population_sorted]
-        
-        #Update best individual and best error if a better one is found
-        current_best_error = population_sorted[0][1][1]['Total Difference']  # Error is the second element of the fitness_and_errors tuple
+
+        current_best_error = population_sorted[0][1][1]['Total Difference']
         if current_best_error < best_error:
             best_error = current_best_error
             best_individual = population_sorted[0][0]
-            best_metrics = population_sorted[0][1][1]  # Best error metrics
-        
-        #Parent selection (top half of the sorted population)
+            best_metrics = population_sorted[0][1][1]
+
         parents = population[:len(population) // 2]
-        
         children = []
+
         while len(children) < (population_size - len(parents)):
             parent1, parent2 = random.sample(parents, 2)
             child1, child2 = crossover(parent1, parent2, param_ranges)
-            children.extend([mutate(child1,param_ranges), mutate(child2,param_ranges)])
-        population = parents + children[:population_size - len(parents)]
-    
+            children.extend([mutate(child1, param_ranges), mutate(child2, param_ranges)])
 
+        population = parents + children[:population_size - len(parents)]
 
     best_individual = [max(value, 1e-6) for value in best_individual]
     return best_individual, best_error, best_metrics
+
 
 
 
@@ -439,12 +502,15 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.savefig(plot_filename)
     plt.close()
 
-
-
-
+    # a_max_range = (0.1, 3.0)  # Max acceleration
+    # v0_range = (10, 40)       # Desired velocity (m/s)
+    # delta_range = (3, 5)      # Acceleration exponent
+    # s0_range = (1, 5)         # Minimum spacing (m)
+    # T_range = (0.5, 3.0)      # Time headway (s)
+    # b_range = (0.5, 3.0)      # Comfortable deceleration (m/s²)
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['A','Th','Ta','G','tau','lamb']
+    param_names = ['a_max', 'v0', 'delta', 's0','T','b']
     num_params = len(param_names)
     
     # Convert list of lists into a 2D numpy array
@@ -479,69 +545,28 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
 
 
 
-
-def format_speed(df):
-    """
-    Computes heading and decomposes speed into speed_x and speed_y for each vehicle ID.
-    
-    Args:
-        df (pd.DataFrame): DataFrame containing 'id', 'time', 'xloc', 'yloc', and 'speed' columns.
-
-    Returns:
-        pd.DataFrame: Updated DataFrame with 'heading', 'speed_x', and 'speed_y' columns.
-    """
-    
-    vehicle_ids = df['id'].unique()
-    df = df.sort_values(by=['id', 'time']).copy() 
-
-    for temp_id in vehicle_ids:
-        # Filter data for the specific vehicle ID
-        temp_data = df[df['id'] == temp_id].copy()
-        
-        # Compute differences in x and y
-        temp_data['dx'] = temp_data['xloc_kf'].diff()
-        temp_data['dy'] = temp_data['yloc_kf'].diff()
-        
-        # Compute heading (in radians)
-        temp_data['heading'] = np.arctan2(temp_data['dy'], temp_data['dx'])
-        
-        # Compute speed_x and speed_y
-        temp_data['speed_x'] = temp_data['speed_kf'] * np.cos(temp_data['heading'])
-        temp_data['speed_y'] = temp_data['speed_kf'] * np.sin(temp_data['heading'])
-
-        # Fill NaN values for first row
-        temp_data.fillna(0, inplace=True)
-
-        # Assign back to the original DataFrame
-        df.loc[df['id'] == temp_id, ['dx', 'dy', 'heading', 'speed_x', 'speed_y']] = temp_data[['dx', 'dy', 'heading', 'speed_x', 'speed_y']]
-    
-    df['speed_kf'] = df['speed_x']
-    return df
-
-
  
 
 
-#Save directory for plots
-save_dir = 'Results/04HDB/'
+# Save directory for plots
+save_dir = 'Results/04IDM/'
 
-#iterate through each dataset and group
-for df_key, df_path in datasets.items():
-    if df_key == 'df395' or df_key == 'df294l2' or df_key == 'df294l1' or df_key == 'df9094':
-        continue
+
+# iterate through each dataset and group
+for df_key, df_path in datasets.items(): 
 
     df = pd.read_csv(df_path)
     df = df.sort_values(by='time')
     df['time'] = df['time'].round(1)
+ 
+
     if df_key == "df395":
         pos = "yloc_kf"
     else:
         pos = "xloc_kf"
 
-
-    if df_key == "df9094" or df_key == 'dfphoenix':    
+    if df_key == "df9094":    
         df = format_speed(df)
-
         
     for group in groups[df_key]:
         # Define the current group
@@ -553,6 +578,13 @@ for df_key, df_path in datasets.items():
         for data in AVs:
             follower_id, run_index = data
             sdf, ldf = extract_subject_and_leader_data(df, follower_id, run_index)
+    
+            # Discard the last 100 points for each trajectory
+            last_filter = 200 
+            if len(sdf) > last_filter:
+                sdf = sdf.iloc[:-last_filter]
+            if len(ldf) > last_filter:
+                ldf = ldf.iloc[:-last_filter]
            
             # Check if sdf is empty
             if sdf.empty:
@@ -573,7 +605,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'A','Th','Ta','G','tau','lamb', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'a_max', 'v0', 'delta', 's0','T','b', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
