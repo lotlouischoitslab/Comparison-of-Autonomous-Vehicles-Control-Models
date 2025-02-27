@@ -266,11 +266,7 @@ def idm_acceleration(vehicle_dict, a_max, v0, s0, T, b):
     delta_v = vehicle_dict['deltav']  # Relative speed
 
     # Ensure safe minimum gap
-    temp = a_max*b
-    if temp <= 0.0:
-        temp = 0.0000001
-
-    s_star = s0 + (v * T) + ((v * delta_v) / (2 * np.sqrt(temp)))
+    s_star = s0 + (v * T) + ((v * delta_v) / (2 * np.sqrt(a_max * b)))
     
     # IDM Acceleration formula
     acceleration = a_max * (1 - (v / v0) ** 4 - (s_star / s) ** 2)
@@ -356,7 +352,7 @@ def simulate_car_following(params):
         
         acceleration[i] = idm_acceleration(vehicle_dict, a_max, v0, s0, T, b)
         
-        speed[i] = speed[i - 1] + acceleration[i] * dt  # Prevent negative speed
+        speed[i] = max(0, speed[i - 1] + acceleration[i] * dt)  # Prevent negative speed
         position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration[i] * (dt**2)
 
     return position, speed, acceleration
@@ -438,11 +434,11 @@ def mutate(child, param_ranges):
 
  
 def genetic_algorithm():
-    a_max_range = (0.01, 3.0)  # Max acceleration
+    a_max_range = (0.1, 3.0)  # Max acceleration
     v0_range = (10, 30)       # Desired velocity (m/s) 
     s0_range = (3, 6)         # Minimum spacing (m)
-    T_range = (1.0, 1.6)      # Time headway (s)
-    b_range = (0.02, 3.0)      # Comfortable deceleration (m/s²)
+    T_range = (0.5, 3.0)      # Time headway (s)
+    b_range = (0.5, 3.0)      # Comfortable deceleration (m/s²)
 
     param_ranges = [a_max_range, v0_range, s0_range, T_range, b_range]
 
