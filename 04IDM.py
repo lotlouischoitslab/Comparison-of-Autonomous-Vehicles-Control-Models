@@ -245,7 +245,7 @@ def extract_subject_and_leader_data(df, follower_id, run_index):
 
 
 
-def idm_acceleration(vehicle_dict, a_max, v0, delta, s0, T, b):
+def idm_acceleration(vehicle_dict, a_max, v0, s0, T, b):
     """
     Intelligent Driver Model (IDM) acceleration calculation.
 
@@ -266,10 +266,10 @@ def idm_acceleration(vehicle_dict, a_max, v0, delta, s0, T, b):
     delta_v = vehicle_dict['deltav']  # Relative speed
 
     # Ensure safe minimum gap
-    s_star = s0 + v * T + (v * delta_v) / (2 * np.sqrt(a_max * b))
+    s_star = s0 + (v * T) + ((v * delta_v) / (2 * np.sqrt(a_max * b)))
     
     # IDM Acceleration formula
-    acceleration = a_max * (1 - (v / v0) ** delta - (s_star / s) ** 2)
+    acceleration = a_max * (1 - (v / v0) ** 4 - (s_star / s) ** 2)
     
     return acceleration
 
@@ -330,7 +330,7 @@ def simulate_car_following(params):
     Returns:
         position, speed, acceleration: Simulated follower trajectory.
     """
-    a_max, v0, delta, s0, T, b = params
+    a_max, v0, s0, T, b = params
 
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
@@ -350,7 +350,7 @@ def simulate_car_following(params):
             'speed': speed[i - 1]
         }
         
-        acceleration[i] = idm_acceleration(vehicle_dict, a_max, v0, delta, s0, T, b)
+        acceleration[i] = idm_acceleration(vehicle_dict, a_max, v0, s0, T, b)
         
         speed[i] = max(0, speed[i - 1] + acceleration[i] * dt)  # Prevent negative speed
         position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration[i] * (dt**2)
@@ -435,13 +435,12 @@ def mutate(child, param_ranges):
  
 def genetic_algorithm():
     a_max_range = (0.1, 3.0)  # Max acceleration
-    v0_range = (10, 40)       # Desired velocity (m/s)
-    delta_range = (3, 5)      # Acceleration exponent
-    s0_range = (1, 5)         # Minimum spacing (m)
+    v0_range = (10, 30)       # Desired velocity (m/s) 
+    s0_range = (3, 6)         # Minimum spacing (m)
     T_range = (0.5, 3.0)      # Time headway (s)
     b_range = (0.5, 3.0)      # Comfortable deceleration (m/s²)
 
-    param_ranges = [a_max_range, v0_range, delta_range, s0_range, T_range, b_range]
+    param_ranges = [a_max_range, v0_range, s0_range, T_range, b_range]
 
     population = [[random.uniform(*range_) for range_ in param_ranges] for _ in range(population_size)]
 
@@ -502,15 +501,9 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.savefig(plot_filename)
     plt.close()
 
-    # a_max_range = (0.1, 3.0)  # Max acceleration
-    # v0_range = (10, 40)       # Desired velocity (m/s)
-    # delta_range = (3, 5)      # Acceleration exponent
-    # s0_range = (1, 5)         # Minimum spacing (m)
-    # T_range = (0.5, 3.0)      # Time headway (s)
-    # b_range = (0.5, 3.0)      # Comfortable deceleration (m/s²)
-
+ 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['a_max', 'v0', 'delta', 's0','T','b']
+    param_names = ['a_max', 'v0', 's0','T','b']
     num_params = len(param_names)
     
     # Convert list of lists into a 2D numpy array
@@ -605,7 +598,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'a_max', 'v0', 'delta', 's0','T','b', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'a_max', 'v0', 's0','T','b', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
