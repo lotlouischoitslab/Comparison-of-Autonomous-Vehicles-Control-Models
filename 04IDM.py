@@ -352,7 +352,7 @@ def simulate_car_following(params):
         
         acceleration[i] = idm_acceleration(vehicle_dict, a_max, v0, s0, T, b)
         
-        speed[i] = max(0, speed[i - 1] + acceleration[i] * dt)  # Prevent negative speed
+        speed[i] = speed[i - 1] + acceleration[i] * dt  # Prevent negative speed
         position[i] = position[i - 1] + speed[i - 1] * dt + 0.5 * acceleration[i] * (dt**2)
 
     return position, speed, acceleration
