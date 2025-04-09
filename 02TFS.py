@@ -281,8 +281,6 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired
 def simulate_car_following(params): 
     rho, lamb, vf = params 
 
- 
-
     num_steps = round(total_time / time_step)
     time = np.linspace(0, total_time, num_steps)
     
