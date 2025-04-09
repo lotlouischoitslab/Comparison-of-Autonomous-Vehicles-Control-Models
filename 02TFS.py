@@ -270,7 +270,7 @@ def acceleration_calculator(i, t, vehicle_dict, rho_max, vf, lambda_var, desired
      
     accl = -rho_max * (vf - vi) * (1 - vi / vf) * (epsilon_dot + lambda_var * delta_i)
     # Clamp acceleration to avoid extreme values
-    # accl = np.clip(accl, -10, 5)  # Adjust the range as necessary
+    accl = np.clip(accl, -10, 5)  # Adjust the range as necessary
     return accl
 
 
