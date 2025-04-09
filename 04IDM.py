@@ -482,8 +482,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.plot(timex, target_position, label='Target')
     plt.plot(timex, sim_position, label='Simulated Follower')
     plt.xlabel('time (sec)')
-    plt.ylabel('Position (m)')
-    plt.title(f'Position vs time, FID: {follower_id}, LID: {int(most_leading_leader_id)}, run: {run_index}')
+    plt.ylabel('Position (m)') 
     plt.legend()
     plt.grid(True)
 
@@ -492,8 +491,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
     plt.plot(timex, target_speed, label='Target')
     plt.plot(timex, sim_speed, label='Simulated Follower')
     plt.xlabel('time (sec)')
-    plt.ylabel('Speed (m/s)')
-    plt.title(f'Speed vs time, FID: {follower_id}, LID: {int(most_leading_leader_id)}, run: {run_index}')
+    plt.ylabel('Speed (m/s)') 
     plt.legend()
     plt.grid(True)
 
@@ -518,8 +516,7 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
 
     for i in range(num_params):
         axs[i].hist(all_params_array[:, i], bins=20, color='skyblue', edgecolor='black')
-        axs[i].set_title(param_names[i])
-        axs[i].set_xlabel('Value')
+        axs[i].set_xlabel(param_names[i]) 
         axs[i].set_ylabel('Frequency')
 
     plt.tight_layout()
@@ -529,7 +526,7 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
     # Create box plots for each parameter
     plt.figure(figsize=(10, 6))
     plt.boxplot(all_params_array, labels=param_names, patch_artist=True)
-    plt.title('Distribution of PT Model Parameters')
+    plt.xlabel('Parameters')
     plt.ylabel('Value')
     plt.xticks(rotation=45)
     plt.tight_layout()
