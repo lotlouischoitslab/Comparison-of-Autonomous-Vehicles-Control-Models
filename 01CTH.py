@@ -462,7 +462,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['th','dmin', 'lamb']
+    param_names = ['th','dmin', r'$\lambda$']
     num_params = len(param_names)
     
     # Convert list of lists into a 2D numpy array
@@ -477,8 +477,9 @@ def visualize_parameter_distributions(all_params,save_dir,outname):
 
     for i in range(num_params):
         axs[i].hist(all_params_array[:, i], bins=20, color='skyblue', edgecolor='black')
-        axs[i].set_xlabel(param_names[i]) 
-        axs[i].set_ylabel('Frequency')
+        axs[i].set_xlabel(param_names[i], fontsize=12)
+        axs[i].set_ylabel('Frequency', fontsize=12)
+        axs[i].tick_params(axis='both', labelsize=10)
 
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_hist.png')
@@ -597,7 +598,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys()) 
-        columns = ['Follower_ID', 'Run_Index', 'th','dmin', 'lamb', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'th','dmin', r'$\lambda$', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

@@ -8,16 +8,11 @@ import os
 
 
 # Phoenix Dataset: https://drive.google.com/drive/folders/1FMLA77VUjdAaS0GXRjvVg4S3rg4IANDz 
- 
-
 # Define dataset file paths
 
 datasets = {
     "df9094": "TGSIM/I90_I94_Moving_Trajectories.csv",
     "df294l1": "TGSIM/I294_L1_Trajectories.csv",
-
-
-
     # "dfphoenixh1a3_run1": "TGSIM/H1A3_run1_X_increase.csv",    # BAD DATA
     # "dfphoenixh1a3_run3": "TGSIM/H1A3_run3_Y_decrease.csv",
     # "dfphoenixh1a3_run4": "TGSIM/H1A3_run4_X_decrease.csv",   # Don't use this
@@ -431,27 +426,32 @@ def genetic_algorithm():
 
 
 
+def plot_simulation(timex, leader_position, target_position, sim_position,
+                    leader_speed, target_speed, sim_speed,
+                    follower_id, most_leading_leader_id, run_index, save_dir):
 
-
-
-def plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir):
     plt.figure(figsize=(10, 12))
+
+    # Position Plot
     plt.subplot(2, 1, 1)
     plt.plot(timex, leader_position, label='Leader')
     plt.plot(timex, target_position, label='Target')
     plt.plot(timex, sim_position, label='Simulated Follower')
-    plt.xlabel('time (sec)')
-    plt.ylabel('Position (m)') 
-    plt.legend()
+    plt.xlabel('Time (sec)', fontsize=14)
+    plt.ylabel('Position (m)', fontsize=14)
+    plt.tick_params(axis='both', labelsize=12)
+    plt.legend(fontsize=12)
     plt.grid(True)
 
+    # Speed Plot
     plt.subplot(2, 1, 2)
     plt.plot(timex, leader_speed, label='Leader')
     plt.plot(timex, target_speed, label='Target')
     plt.plot(timex, sim_speed, label='Simulated Follower')
-    plt.xlabel('time (sec)')
-    plt.ylabel('Speed (m/s)') 
-    plt.legend()
+    plt.xlabel('Time (sec)', fontsize=14)
+    plt.ylabel('Speed (m/s)', fontsize=14)
+    plt.tick_params(axis='both', labelsize=12)
+    plt.legend(fontsize=12)
     plt.grid(True)
 
     plot_filename = os.path.join(save_dir, f'{outname}_FID_{follower_id}_LID_{int(most_leading_leader_id)}_run_{run_index}.png')
@@ -460,8 +460,9 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 
+
 def visualize_parameter_distributions(all_params, save_dir, outname):
-    param_names = ['kv', 'kp', 'S_desired']
+    param_names = ['kv', 'kp', 'S']
     num_params = len(param_names)
 
     # Convert list of lists into a 2D numpy array
@@ -476,8 +477,10 @@ def visualize_parameter_distributions(all_params, save_dir, outname):
 
     for i in range(num_params):
         axs[i].hist(all_params_array[:, i], bins=20, color='skyblue', edgecolor='black')
-        axs[i].set_xlabel(param_names[i]) 
-        axs[i].set_ylabel('Frequency')
+        axs[i].set_xlabel(param_names[i], fontsize=12)
+        axs[i].set_ylabel('Frequency', fontsize=12)
+        axs[i].tick_params(axis='both', labelsize=10)
+
 
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_hist.png')
@@ -486,9 +489,11 @@ def visualize_parameter_distributions(all_params, save_dir, outname):
     # Create box plots for each parameter
     plt.figure(figsize=(10, 6))
     plt.boxplot(all_params_array, labels=param_names, patch_artist=True)
-    plt.xlabel('Parameters')
-    plt.ylabel('Value')
-    plt.xticks(rotation=45)
+
+    # For boxplot
+    plt.xlabel('Parameters', fontsize=12)
+    plt.ylabel('Value', fontsize=12)
+    plt.xticks(rotation=45, fontsize=10) 
     plt.tight_layout()
     plot_filename = os.path.join(save_dir, f'{outname}_box.png')
     plt.savefig(plot_filename)
@@ -595,6 +600,6 @@ for df_key, df_path in datasets.items():
 
         visualize_parameter_distributions(all_params, save_dir, outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'kv', 'kp', 'S_desired', 'Error'] + metrics_names
+        columns = ['Follower_ID', 'Run_Index', 'kv', 'kp', 'S', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)

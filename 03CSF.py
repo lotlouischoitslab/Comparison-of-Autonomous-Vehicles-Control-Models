@@ -474,8 +474,6 @@ def crossover(parent1, parent2, param_ranges):
 
  
 
-
-
 def mutate(child, param_ranges):
     for i in range(len(child)):
         if random.random() < mutation_rate:
@@ -483,9 +481,6 @@ def mutate(child, param_ranges):
     return child
 
 
- 
-
- 
 
 def genetic_algorithm(): 
     dmin_range = (dmin_min, dmin_max)
@@ -561,7 +556,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['dmin', 'K', 'lamb', 'gamma']
+    param_names = ['dmin', 'K', r'$\lambda$', r'$\gamma$']
     num_params = len(param_names)
     
     # Convert list of lists into a 2D numpy array
@@ -654,8 +649,8 @@ for df_key, df_path in datasets.items():
                 plot_simulation(timex, leader_position, target_position, sim_position, leader_speed, target_speed, sim_speed, follower_id, most_leading_leader_id, run_index, save_dir)
         
         visualize_parameter_distributions(all_params,save_dir,outname)
-        metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'dmin', 'K', 'lamb', 'gamma', 'Error'] + metrics_names
+        metrics_names = list(best_metrics.keys()) 
+        columns = ['Follower_ID', 'Run_Index', 'dmin', 'K',  r'$\lambda$', r'$\gamma$', 'Error'] + metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 

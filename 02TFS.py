@@ -470,7 +470,7 @@ def plot_simulation(timex, leader_position, target_position, sim_position, leade
 
 
 def visualize_parameter_distributions(all_params,save_dir,outname):
-    param_names = ['rho', 'lamb','vf']
+    param_names = [r'$\rho$', r'$\lambda$','vf']
     num_params = len(param_names)
     
     # Convert list of lists into a 2D numpy array
@@ -604,7 +604,7 @@ for df_key, df_path in datasets.items():
         
         visualize_parameter_distributions(all_params,save_dir,outname)
         metrics_names = list(best_metrics.keys())
-        columns = ['Follower_ID', 'Run_Index', 'rho','lamb','vf', 'Error']+ metrics_names
+        columns = ['Follower_ID', 'Run_Index', r'$\rho$',r'$\lambda$','vf', 'Error']+ metrics_names
         params_df = pd.DataFrame(params_list, columns=columns)
         params_df.to_csv(f"{save_dir}{outname}.csv", index=False)
 
