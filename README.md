@@ -1,4 +1,4 @@
-# Evaluating and Comparing Longitudinal Control Strategies for Autonomous Vehicles
+## Evaluating Control Strategies for Autonomous Vehicles
 
 ## Contributors:
 - **Louis Sungwoo Cho**
