@@ -6,4 +6,4 @@
 
 
 ## Papers:
-- **[THESIS UIUC IDEALS](https://www.ideals.illinois.edu/items/136229)**
+- **Thesis Available at [UIUC IDEALS](https://www.ideals.illinois.edu/items/136229)**
